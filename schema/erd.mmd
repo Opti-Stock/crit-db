@@ -1,0 +1,309 @@
+erDiagram
+  CRIT_CENTERS ||--o{ USERS : has
+  CRIT_CENTERS ||--o{ PATIENTS : has
+  CRIT_CENTERS ||--o{ COLLABORATORS : has
+  CRIT_CENTERS ||--o{ CLINICS : has
+  CRIT_CENTERS ||--o{ APPOINTMENTS : has
+  CRIT_CENTERS ||--o{ NOTIFICATIONS : has
+  CRIT_CENTERS ||--o{ AUDIT_LOGS : has
+
+  USERS ||--o{ USER_ROLES : has
+  ROLES ||--o{ USER_ROLES : assigned_to
+  USERS ||--o{ USER_CLINIC_ACCESS : has
+  CLINICS ||--o{ USER_CLINIC_ACCESS : grants
+
+  COLLABORATORS ||--o{ USERS : can_have
+  PATIENTS ||--o{ USERS : can_have
+
+  CLINICS ||--o{ ROOMS : has
+  COLLABORATORS ||--o{ COLLABORATOR_CLINICS : belongs_to
+  CLINICS ||--o{ COLLABORATOR_CLINICS : includes
+
+  COLLABORATORS ||--o{ COLLABORATOR_AVAILABILITY : has
+  CLINICS ||--o{ COLLABORATOR_AVAILABILITY : schedules
+
+  APPOINTMENT_TYPES ||--o{ APPOINTMENTS : defines
+  PATIENTS ||--o{ APPOINTMENTS : attends
+  COLLABORATORS ||--o{ APPOINTMENTS : handles
+  CLINICS ||--o{ APPOINTMENTS : hosts
+  ROOMS ||--o{ APPOINTMENTS : assigned_to
+
+  APPOINTMENTS ||--o{ ATTENDANCE_RECORDS : generates
+  PATIENTS ||--o{ ATTENDANCE_RECORDS : has
+  COLLABORATORS ||--o{ ATTENDANCE_RECORDS : registers
+
+  ATTENDANCE_RECORDS ||--o{ MEDICAL_NOTES : has
+  APPOINTMENTS ||--o{ MEDICAL_NOTES : documents
+  PATIENTS ||--o{ MEDICAL_NOTES : owns
+  COLLABORATORS ||--o{ MEDICAL_NOTES : writes
+
+  PATIENTS ||--o{ HANDOFF_NOTES : has
+  APPOINTMENTS ||--o{ HANDOFF_NOTES : related_to
+  USERS ||--o{ HANDOFF_NOTES : creates
+  HANDOFF_NOTES ||--o{ HANDOFF_NOTE_RECIPIENTS : sent_to
+  USERS ||--o{ HANDOFF_NOTE_RECIPIENTS : receives
+
+  USERS ||--o{ NOTIFICATIONS : receives
+
+  PATIENTS ||--o{ PATIENT_CONTACT_METHODS : has
+  PATIENTS ||--o{ EXTERNAL_NOTIFICATIONS : receives
+  APPOINTMENTS ||--o{ EXTERNAL_NOTIFICATIONS : triggers
+
+  CRIT_CENTERS {
+    uuid id PK
+    varchar code
+    varchar name
+    varchar state
+    varchar city
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  USERS {
+    uuid id PK
+    uuid crit_center_id FK
+    uuid collaborator_id FK
+    uuid patient_id FK
+    varchar full_name
+    varchar email
+    varchar password_hash
+    varchar status
+    timestamp last_login_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  ROLES {
+    uuid id PK
+    varchar name
+    text description
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  USER_ROLES {
+    uuid id PK
+    uuid user_id FK
+    uuid role_id FK
+    timestamp created_at
+  }
+
+  USER_CLINIC_ACCESS {
+    uuid id PK
+    uuid user_id FK
+    uuid clinic_id FK
+    varchar access_level
+    timestamp created_at
+  }
+
+  PATIENTS {
+    uuid id PK
+    uuid crit_center_id FK
+    varchar external_id
+    varchar full_name
+    date birth_date
+    varchar phone
+    varchar email
+    varchar disability
+    varchar gender
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  COLLABORATORS {
+    uuid id PK
+    uuid crit_center_id FK
+    varchar external_id
+    varchar full_name
+    varchar phone
+    varchar email
+    varchar specialty
+    varchar gender
+    varchar position
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  CLINICS {
+    uuid id PK
+    uuid crit_center_id FK
+    varchar name
+    varchar specialization
+    integer capacity
+    uuid coordinator_id FK
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  ROOMS {
+    uuid id PK
+    uuid clinic_id FK
+    varchar name
+    integer capacity
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  COLLABORATOR_CLINICS {
+    uuid id PK
+    uuid collaborator_id FK
+    uuid clinic_id FK
+    varchar role_in_clinic
+    timestamp created_at
+  }
+
+  APPOINTMENT_TYPES {
+    uuid id PK
+    varchar name
+    integer default_duration_minutes
+    integer default_pre_session_minutes
+    integer default_post_session_minutes
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  COLLABORATOR_AVAILABILITY {
+    uuid id PK
+    uuid collaborator_id FK
+    uuid clinic_id FK
+    integer weekday
+    time start_time
+    time end_time
+    date valid_from
+    date valid_to
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  APPOINTMENTS {
+    uuid id PK
+    uuid crit_center_id FK
+    uuid patient_id FK
+    uuid collaborator_id FK
+    uuid clinic_id FK
+    uuid room_id FK
+    uuid appointment_type_id FK
+    timestamp starts_at
+    timestamp ends_at
+    integer pre_session_minutes
+    integer post_session_minutes
+    varchar status
+    uuid created_by_user_id FK
+    uuid updated_by_user_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  ATTENDANCE_RECORDS {
+    uuid id PK
+    uuid appointment_id FK
+    uuid patient_id FK
+    uuid collaborator_id FK
+    uuid checked_by_user_id FK
+    varchar status
+    timestamp checked_at
+    boolean notes_required
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  MEDICAL_NOTES {
+    uuid id PK
+    uuid attendance_record_id FK
+    uuid appointment_id FK
+    uuid patient_id FK
+    uuid collaborator_id FK
+    text content
+    varchar format_version
+    uuid created_by_user_id FK
+    uuid updated_by_user_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  HANDOFF_NOTES {
+    uuid id PK
+    uuid crit_center_id FK
+    uuid patient_id FK
+    uuid appointment_id FK
+    uuid created_by_user_id FK
+    varchar title
+    text content
+    varchar priority
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  HANDOFF_NOTE_RECIPIENTS {
+    uuid id PK
+    uuid handoff_note_id FK
+    uuid user_id FK
+    timestamp read_at
+    timestamp created_at
+  }
+
+  NOTIFICATIONS {
+    uuid id PK
+    uuid crit_center_id FK
+    uuid user_id FK
+    varchar type
+    varchar title
+    text message
+    timestamp read_at
+    timestamp created_at
+  }
+
+  PATIENT_CONTACT_METHODS {
+    uuid id PK
+    uuid patient_id FK
+    varchar type
+    varchar value
+    boolean is_primary
+    varchar consent_status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  EXTERNAL_NOTIFICATIONS {
+    uuid id PK
+    uuid patient_id FK
+    uuid appointment_id FK
+    varchar channel
+    varchar type
+    varchar recipient
+    varchar status
+    varchar provider
+    varchar provider_message_id
+    timestamp sent_at
+    timestamp created_at
+  }
+
+  CRIT_API_OUTBOX {
+    uuid id PK
+    varchar entity_type
+    uuid entity_id
+    jsonb payload
+    varchar status
+    integer retry_count
+    text last_error
+    timestamp sent_at
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  AUDIT_LOGS {
+    uuid id PK
+    uuid crit_center_id FK
+    uuid user_id FK
+    varchar action
+    varchar entity_type
+    uuid entity_id
+    jsonb metadata
+    timestamp created_at
+  }
