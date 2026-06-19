@@ -1,19 +1,34 @@
 erDiagram
-  CRIT_CENTERS ||--o{ USERS : has
-  CRIT_CENTERS ||--o{ PATIENTS : has
-  CRIT_CENTERS ||--o{ COLLABORATORS : has
-  CRIT_CENTERS ||--o{ CLINICS : has
-  CRIT_CENTERS ||--o{ APPOINTMENTS : has
-  CRIT_CENTERS ||--o{ NOTIFICATIONS : has
-  CRIT_CENTERS ||--o{ AUDIT_LOGS : has
+  TENANTS ||--o{ USERS : scopes
+  TENANTS ||--o{ ROLES : scopes
+  TENANTS ||--o{ USER_ROLES : scopes
+  TENANTS ||--o{ USER_CLINIC_ACCESS : scopes
+  TENANTS ||--o{ PATIENTS : scopes
+  TENANTS ||--o{ COLLABORATORS : scopes
+  TENANTS ||--o{ CLINICS : scopes
+  TENANTS ||--o{ ROOMS : scopes
+  TENANTS ||--o{ COLLABORATOR_CLINICS : scopes
+  TENANTS ||--o{ APPOINTMENT_TYPES : scopes
+  TENANTS ||--o{ COLLABORATOR_AVAILABILITY : scopes
+  TENANTS ||--o{ APPOINTMENTS : scopes
+  TENANTS ||--o{ ATTENDANCE_RECORDS : scopes
+  TENANTS ||--o{ MEDICAL_NOTES : scopes
+  TENANTS ||--o{ HANDOFF_NOTES : scopes
+  TENANTS ||--o{ HANDOFF_NOTE_RECIPIENTS : scopes
+  TENANTS ||--o{ NOTIFICATIONS : scopes
+  TENANTS ||--o{ PATIENT_CONTACT_METHODS : scopes
+  TENANTS ||--o{ EXTERNAL_NOTIFICATIONS : scopes
+  TENANTS ||--o{ CRIT_API_OUTBOX : scopes
+  TENANTS ||--o{ AUDIT_LOGS : scopes
 
   USERS ||--o{ USER_ROLES : has
   ROLES ||--o{ USER_ROLES : assigned_to
+
   USERS ||--o{ USER_CLINIC_ACCESS : has
   CLINICS ||--o{ USER_CLINIC_ACCESS : grants
 
-  COLLABORATORS ||--o{ USERS : can_have
-  PATIENTS ||--o{ USERS : can_have
+  USERS ||--o| COLLABORATORS : authenticates_staff_profile
+  USERS ||--o| PATIENTS : optional_family_login
 
   CLINICS ||--o{ ROOMS : has
   COLLABORATORS ||--o{ COLLABORATOR_CLINICS : belongs_to
@@ -31,11 +46,13 @@ erDiagram
   APPOINTMENTS ||--o{ ATTENDANCE_RECORDS : generates
   PATIENTS ||--o{ ATTENDANCE_RECORDS : has
   COLLABORATORS ||--o{ ATTENDANCE_RECORDS : registers
+  USERS ||--o{ ATTENDANCE_RECORDS : checks
 
   ATTENDANCE_RECORDS ||--o{ MEDICAL_NOTES : has
   APPOINTMENTS ||--o{ MEDICAL_NOTES : documents
   PATIENTS ||--o{ MEDICAL_NOTES : owns
   COLLABORATORS ||--o{ MEDICAL_NOTES : writes
+  USERS ||--o{ MEDICAL_NOTES : creates
 
   PATIENTS ||--o{ HANDOFF_NOTES : has
   APPOINTMENTS ||--o{ HANDOFF_NOTES : related_to
@@ -49,9 +66,9 @@ erDiagram
   PATIENTS ||--o{ EXTERNAL_NOTIFICATIONS : receives
   APPOINTMENTS ||--o{ EXTERNAL_NOTIFICATIONS : triggers
 
-  CRIT_CENTERS {
+  TENANTS {
     uuid id PK
-    varchar code
+    varchar code UK
     varchar name
     varchar state
     varchar city
@@ -62,9 +79,7 @@ erDiagram
 
   USERS {
     uuid id PK
-    uuid crit_center_id FK
-    uuid collaborator_id FK
-    uuid patient_id FK
+    uuid tenant_id FK
     varchar full_name
     varchar email
     varchar password_hash
@@ -76,6 +91,7 @@ erDiagram
 
   ROLES {
     uuid id PK
+    uuid tenant_id FK
     varchar name
     text description
     timestamp created_at
@@ -84,6 +100,7 @@ erDiagram
 
   USER_ROLES {
     uuid id PK
+    uuid tenant_id FK
     uuid user_id FK
     uuid role_id FK
     timestamp created_at
@@ -91,6 +108,7 @@ erDiagram
 
   USER_CLINIC_ACCESS {
     uuid id PK
+    uuid tenant_id FK
     uuid user_id FK
     uuid clinic_id FK
     varchar access_level
@@ -99,7 +117,8 @@ erDiagram
 
   PATIENTS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
+    uuid user_id FK
     varchar external_id
     varchar full_name
     date birth_date
@@ -114,7 +133,8 @@ erDiagram
 
   COLLABORATORS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
+    uuid user_id FK
     varchar external_id
     varchar full_name
     varchar phone
@@ -129,7 +149,7 @@ erDiagram
 
   CLINICS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
     varchar name
     varchar specialization
     integer capacity
@@ -141,6 +161,7 @@ erDiagram
 
   ROOMS {
     uuid id PK
+    uuid tenant_id FK
     uuid clinic_id FK
     varchar name
     integer capacity
@@ -151,6 +172,7 @@ erDiagram
 
   COLLABORATOR_CLINICS {
     uuid id PK
+    uuid tenant_id FK
     uuid collaborator_id FK
     uuid clinic_id FK
     varchar role_in_clinic
@@ -159,6 +181,7 @@ erDiagram
 
   APPOINTMENT_TYPES {
     uuid id PK
+    uuid tenant_id FK
     varchar name
     integer default_duration_minutes
     integer default_pre_session_minutes
@@ -169,6 +192,7 @@ erDiagram
 
   COLLABORATOR_AVAILABILITY {
     uuid id PK
+    uuid tenant_id FK
     uuid collaborator_id FK
     uuid clinic_id FK
     integer weekday
@@ -182,7 +206,7 @@ erDiagram
 
   APPOINTMENTS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
     uuid patient_id FK
     uuid collaborator_id FK
     uuid clinic_id FK
@@ -201,6 +225,7 @@ erDiagram
 
   ATTENDANCE_RECORDS {
     uuid id PK
+    uuid tenant_id FK
     uuid appointment_id FK
     uuid patient_id FK
     uuid collaborator_id FK
@@ -214,6 +239,7 @@ erDiagram
 
   MEDICAL_NOTES {
     uuid id PK
+    uuid tenant_id FK
     uuid attendance_record_id FK
     uuid appointment_id FK
     uuid patient_id FK
@@ -228,7 +254,7 @@ erDiagram
 
   HANDOFF_NOTES {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
     uuid patient_id FK
     uuid appointment_id FK
     uuid created_by_user_id FK
@@ -242,6 +268,7 @@ erDiagram
 
   HANDOFF_NOTE_RECIPIENTS {
     uuid id PK
+    uuid tenant_id FK
     uuid handoff_note_id FK
     uuid user_id FK
     timestamp read_at
@@ -250,7 +277,7 @@ erDiagram
 
   NOTIFICATIONS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
     uuid user_id FK
     varchar type
     varchar title
@@ -261,6 +288,7 @@ erDiagram
 
   PATIENT_CONTACT_METHODS {
     uuid id PK
+    uuid tenant_id FK
     uuid patient_id FK
     varchar type
     varchar value
@@ -272,6 +300,7 @@ erDiagram
 
   EXTERNAL_NOTIFICATIONS {
     uuid id PK
+    uuid tenant_id FK
     uuid patient_id FK
     uuid appointment_id FK
     varchar channel
@@ -286,6 +315,7 @@ erDiagram
 
   CRIT_API_OUTBOX {
     uuid id PK
+    uuid tenant_id FK
     varchar entity_type
     uuid entity_id
     jsonb payload
@@ -299,7 +329,7 @@ erDiagram
 
   AUDIT_LOGS {
     uuid id PK
-    uuid crit_center_id FK
+    uuid tenant_id FK
     uuid user_id FK
     varchar action
     varchar entity_type
