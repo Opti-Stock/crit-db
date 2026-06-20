@@ -1,8 +1,25 @@
-# Access Rules
+# Reglas de acceso
 
-Reglas iniciales de acceso a datos.
+## Defensa en profundidad
 
-- Médicos y terapeutas ven sus propias citas.
-- Recepción ve citas y asistencias de su clínica.
-- Dirección y admin tienen acceso administrativo.
-- Recepción no debe ver contenido clínico sensible.
+1. `crit-api` autentica y autoriza por rol.
+2. Cada query incluye `tenant_id` explícitamente.
+3. PostgreSQL aplica RLS usando `app.current_tenant_id`.
+4. Las FKs compuestas impiden relaciones cruzadas entre tenants.
+
+El rol PostgreSQL `crit_app` no es propietario, no puede crear objetos y no puede escribir directamente en `tenants` ni `audit_logs`.
+
+## Matriz funcional inicial
+
+| Rol | Acceso principal | Restricción destacada |
+|---|---|---|
+| `admin` | Usuarios, roles y configuración | No recibe acceso clínico por ser admin |
+| `direccion` | Supervisión administrativa | No recibe contenido clínico automáticamente |
+| `recepcion` | Citas y estado de asistencia por clínica | No puede consultar `medical_notes` |
+| `coordinador` | Agenda y operación de sus clínicas | Sin contenido clínico por defecto |
+| `medico` | Citas propias, asistencia y notas médicas | Limitado al tenant autenticado |
+| `terapeuta` | Citas propias, asistencia y notas médicas | Limitado al tenant autenticado |
+| `personal_acompanamiento` | Notas de enlace autorizadas | Sin notas médicas |
+| `paciente_familia` | Reservado para futuro | No se asigna en el MVP |
+
+La política RLS de `medical_notes` exige `app.current_user_id` y una asignación activa a `medico` o `terapeuta`. Las demás reglas de propiedad —por ejemplo, “solo mis citas”— se implementan además en los repositorios de la API.

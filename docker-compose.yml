@@ -1,23 +1,26 @@
 services:
   crit-db:
-    image: postgres:18
+    build:
+      context: .
+    image: crit-db:local
     container_name: crit-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: crit_assistance
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crit_db}
+      APP_DB_USER: ${APP_DB_USER:-crit_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-crit_app}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - crit_db_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
-      - ./seeds:/seeds
+      - crit-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d crit_assistance"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crit_db}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 5s
 
 volumes:
-  crit_db_data:
+  crit-db-data:

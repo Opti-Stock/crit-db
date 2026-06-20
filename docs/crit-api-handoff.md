@@ -1,0 +1,110 @@
+# Handoff de base de datos para crit-api
+
+Este documento es el contrato de integración entre `crit-db` y `crit-api`. La API usa `pg` directamente; no debe crear tablas ni mantener migraciones propias.
+
+## Conexión
+
+API en el host y PostgreSQL en Docker:
+
+```env
+DATABASE_URL=postgresql://crit_app:crit_app@localhost:5432/crit_db
+```
+
+API y PostgreSQL en la misma red Docker:
+
+```env
+DATABASE_URL=postgresql://crit_app:crit_app@crit-db:5432/crit_db
+```
+
+Los valores son ejemplos locales. El propietario configurado en `POSTGRES_USER` se reserva para migraciones y soporte; nunca debe ser el `DATABASE_URL` de la aplicación.
+
+La comprobación mínima de readiness es:
+
+```sql
+SELECT 1;
+SELECT to_regclass('public.tenants') AS tenants_table;
+```
+
+## Resolución del tenant y login
+
+El login futuro recibe:
+
+```json
+{
+  "tenantCode": "CRIT-OCC-01",
+  "email": "usuario@crit.org",
+  "password": "..."
+}
+```
+
+1. Consultar `tenants` por `code` y `status = 'active'`.
+2. Abrir una transacción con el `tenantId` resuelto.
+3. Consultar `users` por `tenant_id`, email normalizado y estado activo.
+4. Emitir JWT con `sub`/`userId`, `tenantId` y roles autorizados.
+
+No se puede inferir el tenant solo por email porque la unicidad es por tenant.
+
+## Contexto seguro con pg
+
+Todas las operaciones autenticadas usan el mismo `PoolClient` durante toda la transacción:
+
+```ts
+const client = await pool.connect();
+
+try {
+  await client.query("BEGIN");
+  await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenantId]);
+  await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
+
+  const result = await client.query(
+    "SELECT * FROM appointments WHERE tenant_id = $1 AND id = $2",
+    [tenantId, appointmentId]
+  );
+
+  await client.query("COMMIT");
+  return result;
+} catch (error) {
+  await client.query("ROLLBACK");
+  throw error;
+} finally {
+  client.release();
+}
+```
+
+El tercer argumento `true` hace que el valor sea local a la transacción. Nunca usar `SET` persistente sobre una conexión del pool: podría filtrar contexto al siguiente request. RLS es una defensa adicional; cada query conserva el filtro explícito `tenant_id = $1`.
+
+Para operaciones sin usuario —por ejemplo un worker— establecer `app.current_user_id` como cadena vacía y procesar un tenant por transacción.
+
+## Acceso clínico
+
+`medical_notes` solo permite operaciones cuando `app.current_user_id` tiene rol activo `medico` o `terapeuta` en el mismo tenant. Los endpoints de recepción, agenda general y asistencia operativa no deben seleccionar ni unir `medical_notes.content`.
+
+El contenido es un objeto JSON compatible con la versión indicada por `format_version`. El frontend genera cualquier PDF; la base no almacena archivos.
+
+## Outbox
+
+La mutación de negocio y el registro en `crit_api_outbox` deben confirmarse en la misma transacción. El worker:
+
+1. Obtiene tenants activos como proceso interno.
+2. Abre una transacción por tenant y establece contexto.
+3. Reclama filas `pending`/`failed` con bloqueo (`FOR UPDATE SKIP LOCKED`).
+4. Marca `processing`, realiza el POST y termina en `sent` o `failed`.
+5. Incrementa `retry_count` y guarda un error sanitizado; nunca tokens ni contenido clínico innecesario.
+
+El fallo de la API institucional no revierte la operación clínica ya persistida.
+
+## Auditoría
+
+Los triggers registran acción, tabla, entidad, actor y nombres de campos modificados. No se guardan valores previos/nuevos, `password_hash` ni contenido clínico. `crit_app` solo puede leer auditoría bajo RLS y no puede insertar, actualizar o eliminar filas directamente.
+
+## Errores esperables
+
+- Sin `app.current_tenant_id`: lecturas vacías y escrituras rechazadas por RLS.
+- Tenant incorrecto: recurso no visible; la API responde `404` para evitar enumeración.
+- FK compuesta inválida: conflicto de relación entre tenants; la API responde `400` o `409` según el caso.
+- Estado no permitido: constraint violation; validar antes con Zod y responder `400`.
+- Acceso no clínico a notas: sin filas visibles o escritura rechazada; la API responde `403` antes de consultar.
+
+## Versionado
+
+La baseline esperada termina en `009_create_audit_logs.sql`. Mientras no exista un runner versionado para ambientes compartidos, desarrollo debe iniciar con un volumen vacío después de cambios estructurales. `crit-api` debe fallar su readiness si `public.tenants` no existe.

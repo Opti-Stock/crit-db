@@ -1,0 +1,39 @@
+name: Database CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  database-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and initialize PostgreSQL
+        run: docker compose up --build --wait
+
+      - name: Verify schema contract
+        run: docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/tests/001_schema_contract.sql
+
+      - name: Verify security contract
+        run: docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/tests/002_security_contract.sql
+
+      - name: Verify idempotent seeds
+        run: |
+          docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/seeds/002_seed_tenant_crit_occidente.sql
+          docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/seeds/001_seed_roles.sql
+          docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/tests/001_schema_contract.sql
+
+      - name: Show database logs on failure
+        if: failure()
+        run: docker compose logs crit-db
+
+      - name: Stop services
+        if: always()
+        run: docker compose down --volumes
