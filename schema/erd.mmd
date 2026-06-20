@@ -1,4 +1,4 @@
-erDiagram
+﻿erDiagram
   TENANTS ||--o{ USERS : scopes
   TENANTS ||--o{ ROLES : scopes
   TENANTS ||--o{ USER_ROLES : scopes
@@ -61,6 +61,7 @@ erDiagram
   USERS ||--o{ HANDOFF_NOTE_RECIPIENTS : receives
 
   USERS ||--o{ NOTIFICATIONS : receives
+  USERS ||--o{ AUDIT_LOGS : acts
 
   PATIENTS ||--o{ PATIENT_CONTACT_METHODS : has
   PATIENTS ||--o{ EXTERNAL_NOTIFICATIONS : receives
@@ -73,8 +74,9 @@ erDiagram
     varchar state
     varchar city
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   USERS {
@@ -84,9 +86,10 @@ erDiagram
     varchar email
     varchar password_hash
     varchar status
-    timestamp last_login_at
-    timestamp created_at
-    timestamp updated_at
+    timestamptz last_login_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   ROLES {
@@ -94,8 +97,9 @@ erDiagram
     uuid tenant_id FK
     varchar name
     text description
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   USER_ROLES {
@@ -103,7 +107,7 @@ erDiagram
     uuid tenant_id FK
     uuid user_id FK
     uuid role_id FK
-    timestamp created_at
+    timestamptz created_at
   }
 
   USER_CLINIC_ACCESS {
@@ -112,7 +116,7 @@ erDiagram
     uuid user_id FK
     uuid clinic_id FK
     varchar access_level
-    timestamp created_at
+    timestamptz created_at
   }
 
   PATIENTS {
@@ -127,8 +131,9 @@ erDiagram
     varchar disability
     varchar gender
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   COLLABORATORS {
@@ -143,8 +148,9 @@ erDiagram
     varchar gender
     varchar position
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   CLINICS {
@@ -155,8 +161,9 @@ erDiagram
     integer capacity
     uuid coordinator_id FK
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   ROOMS {
@@ -166,8 +173,9 @@ erDiagram
     varchar name
     integer capacity
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   COLLABORATOR_CLINICS {
@@ -176,7 +184,7 @@ erDiagram
     uuid collaborator_id FK
     uuid clinic_id FK
     varchar role_in_clinic
-    timestamp created_at
+    timestamptz created_at
   }
 
   APPOINTMENT_TYPES {
@@ -186,8 +194,9 @@ erDiagram
     integer default_duration_minutes
     integer default_pre_session_minutes
     integer default_post_session_minutes
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   COLLABORATOR_AVAILABILITY {
@@ -200,8 +209,9 @@ erDiagram
     time end_time
     date valid_from
     date valid_to
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   APPOINTMENTS {
@@ -212,15 +222,16 @@ erDiagram
     uuid clinic_id FK
     uuid room_id FK
     uuid appointment_type_id FK
-    timestamp starts_at
-    timestamp ends_at
+    timestamptz starts_at
+    timestamptz ends_at
     integer pre_session_minutes
     integer post_session_minutes
     varchar status
     uuid created_by_user_id FK
     uuid updated_by_user_id FK
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   ATTENDANCE_RECORDS {
@@ -231,10 +242,11 @@ erDiagram
     uuid collaborator_id FK
     uuid checked_by_user_id FK
     varchar status
-    timestamp checked_at
+    timestamptz checked_at
     boolean notes_required
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   MEDICAL_NOTES {
@@ -244,12 +256,13 @@ erDiagram
     uuid appointment_id FK
     uuid patient_id FK
     uuid collaborator_id FK
-    text content
+    jsonb content
     varchar format_version
     uuid created_by_user_id FK
     uuid updated_by_user_id FK
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   HANDOFF_NOTES {
@@ -262,8 +275,9 @@ erDiagram
     text content
     varchar priority
     varchar status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
   }
 
   HANDOFF_NOTE_RECIPIENTS {
@@ -271,8 +285,8 @@ erDiagram
     uuid tenant_id FK
     uuid handoff_note_id FK
     uuid user_id FK
-    timestamp read_at
-    timestamp created_at
+    timestamptz read_at
+    timestamptz created_at
   }
 
   NOTIFICATIONS {
@@ -282,8 +296,8 @@ erDiagram
     varchar type
     varchar title
     text message
-    timestamp read_at
-    timestamp created_at
+    timestamptz read_at
+    timestamptz created_at
   }
 
   PATIENT_CONTACT_METHODS {
@@ -294,8 +308,8 @@ erDiagram
     varchar value
     boolean is_primary
     varchar consent_status
-    timestamp created_at
-    timestamp updated_at
+    timestamptz created_at
+    timestamptz updated_at
   }
 
   EXTERNAL_NOTIFICATIONS {
@@ -309,8 +323,9 @@ erDiagram
     varchar status
     varchar provider
     varchar provider_message_id
-    timestamp sent_at
-    timestamp created_at
+    timestamptz sent_at
+    timestamptz created_at
+    timestamptz updated_at
   }
 
   CRIT_API_OUTBOX {
@@ -322,9 +337,9 @@ erDiagram
     varchar status
     integer retry_count
     text last_error
-    timestamp sent_at
-    timestamp created_at
-    timestamp updated_at
+    timestamptz sent_at
+    timestamptz created_at
+    timestamptz updated_at
   }
 
   AUDIT_LOGS {
@@ -335,5 +350,5 @@ erDiagram
     varchar entity_type
     uuid entity_id
     jsonb metadata
-    timestamp created_at
+    timestamptz created_at
   }

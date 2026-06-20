@@ -1,147 +1,73 @@
 # crit-db
 
-Repositorio de base de datos para el sistema de optimización de asistencias del CRIT.
+Fuente de verdad del esquema PostgreSQL de CRIT Assist. Contiene la baseline SQL, seeds de desarrollo, aislamiento multi-tenant, ERD, pruebas de contrato y documentación para `crit-api`.
 
-## Propósito
+## Requisitos
 
-Este repositorio define la estructura inicial de PostgreSQL para soportar:
+- Docker Desktop con Docker Compose.
+- PowerShell para el script de verificación local.
 
-- Multi-CRIT.
-- Usuarios y roles.
-- Clínicas y cuartos.
-- Pacientes.
-- Colaboradores.
-- Calendario y citas.
-- Asistencias.
-- Nota médica.
-- Notas de enlace.
-- Notificaciones.
-- Integración temporal con API CRIT.
-- Auditoría.
+La baseline usa PostgreSQL 16 y la base de desarrollo se llama `crit_db`.
 
-## Stack
+## Inicio rápido
 
-- PostgreSQL.
-- Docker.
-- SQL migrations manuales.
-- Seeds.
-- Mermaid ERD.
-- Diccionario de datos.
-
-## Estructura
-
-```txt
-crit-db/
-├── docker/
-│   └── postgres/
-│       ├── Dockerfile
-│       └── init/
-├── migrations/
-├── seeds/
-├── schema/
-│   ├── erd.mmd
-│   └── tables/
-├── docs/
-├── scripts/
-├── .env.example
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
+```powershell
+Copy-Item .env.example .env
+docker compose up --build --wait
+.\scripts\verify-db.ps1
 ```
 
-## Decisión de diseño
+La configuración incluida es solo para desarrollo. No se deben reutilizar esas contraseñas en ambientes compartidos.
 
-Aunque el MVP se probará en CRIT Occidente, la base se prepara para varios CRIT desde el inicio mediante la tabla:
+Para reinicializar una base local desde cero:
 
-```txt
-crit_centers
+```powershell
+docker compose down --volumes
+docker compose up --build --wait
 ```
 
-Las tablas principales tendrán relación con `crit_center_id`.
+Eliminar el volumen borra los datos locales. Los scripts de `/docker-entrypoint-initdb.d` únicamente se ejecutan al crear un volumen vacío.
 
-## Tablas principales
+## Modelo
 
-```txt
-crit_centers
-users
-roles
-user_roles
-user_clinic_access
-patients
-collaborators
-clinics
-rooms
-collaborator_clinics
-appointment_types
-collaborator_availability
-appointments
-attendance_records
-medical_notes
-handoff_notes
-handoff_note_recipients
-notifications
-patient_contact_methods
-external_notifications
-crit_api_outbox
-audit_logs
+- `tenants` es la raíz multi-tenant; un tenant representa un centro CRIT en el MVP.
+- Las 21 tablas de negocio incluyen `tenant_id UUID NOT NULL`.
+- Las relaciones usan claves foráneas compuestas para impedir referencias entre tenants.
+- `users` es la identidad de autenticación.
+- `collaborators.user_id` es obligatorio y único; `patients.user_id` es opcional y único.
+- Las notas médicas se almacenan como JSONB estructurado; no se guardan PDFs.
+- La integración externa usa `crit_api_outbox` para no bloquear el flujo clínico.
+
+El diagrama canónico está en [`schema/erd.mmd`](schema/erd.mmd) y el detalle de campos en [`docs/data-dictionary.md`](docs/data-dictionary.md).
+
+## Migraciones y seeds
+
+Las migraciones se ejecutan una sola vez y en orden `000`–`009`. Los seeds son idempotentes; por su dependencia, el inicializador aplica primero el tenant CRIT Occidente y después los roles.
+
+La baseline no es un mecanismo de migración continua sobre bases existentes. Antes del primer ambiente compartido debe definirse un runner con registro de versiones; hasta entonces, los cambios de esta baseline requieren una base limpia.
+
+## Seguridad
+
+Docker crea dos identidades de base de datos:
+
+- `POSTGRES_USER`: propietario/migrador; no lo usa la aplicación.
+- `APP_DB_USER` (`crit_app` por defecto): rol no propietario usado por `crit-api`.
+
+`crit_app` está sujeto a RLS. Cada transacción debe establecer `app.current_tenant_id` y `app.current_user_id`. Las consultas también deben filtrar `tenant_id` explícitamente. Las notas médicas requieren un usuario con rol `medico` o `terapeuta`.
+
+Ver [`docs/crit-api-handoff.md`](docs/crit-api-handoff.md) para el contrato de integración completo.
+
+## Validación
+
+```powershell
+.\scripts\verify-db.ps1
 ```
 
-## Mermaid ERD inicial
+La misma suite se ejecuta en GitHub Actions y comprueba estructura, seeds, constraints, RLS, acceso clínico, auditoría y referencias entre tenants.
 
-Ver también:
+## Fuera del MVP
 
-```txt
-schema/erd.mmd
-```
-
-```mermaid
-erDiagram
-  CRIT_CENTERS ||--o{ USERS : has
-  CRIT_CENTERS ||--o{ PATIENTS : has
-  CRIT_CENTERS ||--o{ COLLABORATORS : has
-  CRIT_CENTERS ||--o{ CLINICS : has
-  CRIT_CENTERS ||--o{ APPOINTMENTS : has
-  CRIT_CENTERS ||--o{ NOTIFICATIONS : has
-  CRIT_CENTERS ||--o{ AUDIT_LOGS : has
-
-  USERS ||--o{ USER_ROLES : has
-  ROLES ||--o{ USER_ROLES : assigned_to
-  USERS ||--o{ USER_CLINIC_ACCESS : has
-  CLINICS ||--o{ USER_CLINIC_ACCESS : grants
-
-  COLLABORATORS ||--o{ USERS : can_have
-  PATIENTS ||--o{ USERS : can_have
-
-  CLINICS ||--o{ ROOMS : has
-  COLLABORATORS ||--o{ COLLABORATOR_CLINICS : belongs_to
-  CLINICS ||--o{ COLLABORATOR_CLINICS : includes
-
-  COLLABORATORS ||--o{ COLLABORATOR_AVAILABILITY : has
-  CLINICS ||--o{ COLLABORATOR_AVAILABILITY : schedules
-
-  APPOINTMENT_TYPES ||--o{ APPOINTMENTS : defines
-  PATIENTS ||--o{ APPOINTMENTS : attends
-  COLLABORATORS ||--o{ APPOINTMENTS : handles
-  CLINICS ||--o{ APPOINTMENTS : hosts
-  ROOMS ||--o{ APPOINTMENTS : assigned_to
-
-  APPOINTMENTS ||--o{ ATTENDANCE_RECORDS : generates
-  ATTENDANCE_RECORDS ||--o{ MEDICAL_NOTES : has
-
-  PATIENTS ||--o{ HANDOFF_NOTES : has
-  HANDOFF_NOTES ||--o{ HANDOFF_NOTE_RECIPIENTS : sent_to
-  USERS ||--o{ HANDOFF_NOTE_RECIPIENTS : receives
-
-  USERS ||--o{ NOTIFICATIONS : receives
-  PATIENTS ||--o{ PATIENT_CONTACT_METHODS : has
-  PATIENTS ||--o{ EXTERNAL_NOTIFICATIONS : receives
-  APPOINTMENTS ||--o{ EXTERNAL_NOTIFICATIONS : triggers
-```
-
-## Notas importantes
-
-- No se modela módulo de pagos porque está fuera del MVP.
-- La nota médica se guarda como datos, no como PDF.
-- El PDF se genera desde frontend cuando el usuario lo necesite.
-- WhatsApp/SMS debe quedar preparado, pero no implementarse al inicio.
-- El autosugerido de agenda debe quedar preparado, pero implementarse al final del MVP.
+- Pagos.
+- Archivos PDF persistidos.
+- Portal activo para pacientes/familias.
+- Implementación completa de proveedores WhatsApp/SMS.

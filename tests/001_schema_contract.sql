@@ -1,0 +1,124 @@
+\set ON_ERROR_STOP on
+
+DO $$
+DECLARE
+    required_table TEXT;
+    tenant_table TEXT;
+    nullable_value TEXT;
+BEGIN
+    FOREACH required_table IN ARRAY ARRAY[
+        'tenants', 'users', 'roles', 'user_roles', 'user_clinic_access',
+        'patients', 'collaborators', 'clinics', 'rooms', 'collaborator_clinics',
+        'appointment_types', 'collaborator_availability', 'appointments',
+        'attendance_records', 'medical_notes', 'handoff_notes',
+        'handoff_note_recipients', 'notifications', 'patient_contact_methods',
+        'external_notifications', 'crit_api_outbox', 'audit_logs'
+    ] LOOP
+        IF to_regclass('public.' || required_table) IS NULL THEN
+            RAISE EXCEPTION 'Missing required table: %', required_table;
+        END IF;
+    END LOOP;
+
+    FOREACH tenant_table IN ARRAY ARRAY[
+        'users', 'roles', 'user_roles', 'user_clinic_access', 'patients',
+        'collaborators', 'clinics', 'rooms', 'collaborator_clinics',
+        'appointment_types', 'collaborator_availability', 'appointments',
+        'attendance_records', 'medical_notes', 'handoff_notes',
+        'handoff_note_recipients', 'notifications', 'patient_contact_methods',
+        'external_notifications', 'crit_api_outbox', 'audit_logs'
+    ] LOOP
+        SELECT is_nullable
+        INTO nullable_value
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = tenant_table
+          AND column_name = 'tenant_id';
+
+        IF nullable_value IS DISTINCT FROM 'NO' THEN
+            RAISE EXCEPTION '%.tenant_id must exist and be NOT NULL', tenant_table;
+        END IF;
+    END LOOP;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND column_name = 'crit_center_id'
+    ) THEN
+        RAISE EXCEPTION 'Legacy crit_center_id column found';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'users'
+          AND column_name IN ('patient_id', 'collaborator_id')
+    ) THEN
+        RAISE EXCEPTION 'users contains a circular identity column';
+    END IF;
+
+    SELECT is_nullable INTO nullable_value
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'collaborators' AND column_name = 'user_id';
+    IF nullable_value IS DISTINCT FROM 'NO' THEN
+        RAISE EXCEPTION 'collaborators.user_id must be NOT NULL';
+    END IF;
+
+    SELECT is_nullable INTO nullable_value
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'patients' AND column_name = 'user_id';
+    IF nullable_value IS DISTINCT FROM 'YES' THEN
+        RAISE EXCEPTION 'patients.user_id must be nullable';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'patients'::regclass
+          AND contype = 'u'
+          AND pg_get_constraintdef(oid) = 'UNIQUE (user_id)'
+    ) THEN
+        RAISE EXCEPTION 'patients.user_id must be UNIQUE';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'collaborators'::regclass
+          AND contype = 'u'
+          AND pg_get_constraintdef(oid) = 'UNIQUE (user_id)'
+    ) THEN
+        RAISE EXCEPTION 'collaborators.user_id must be UNIQUE';
+    END IF;
+
+    IF (SELECT count(*) FROM tenants WHERE id = '00000000-0000-0000-0000-000000000001') <> 1 THEN
+        RAISE EXCEPTION 'CRIT Occidente seed is missing';
+    END IF;
+
+    IF (SELECT count(*) FROM roles WHERE tenant_id = '00000000-0000-0000-0000-000000000001') <> 8 THEN
+        RAISE EXCEPTION 'Expected exactly eight initial roles';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM pg_class
+        WHERE relnamespace = 'public'::regnamespace
+          AND relname = ANY (ARRAY[
+              'users', 'roles', 'patients', 'collaborators', 'appointments',
+              'attendance_records', 'medical_notes', 'crit_api_outbox', 'audit_logs'
+          ])
+          AND NOT relrowsecurity
+    ) THEN
+        RAISE EXCEPTION 'A required table does not have RLS enabled';
+    END IF;
+
+    IF (
+        SELECT data_type
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'appointments' AND column_name = 'starts_at'
+    ) <> 'timestamp with time zone' THEN
+        RAISE EXCEPTION 'appointments.starts_at must use TIMESTAMPTZ';
+    END IF;
+END;
+$$;
+
+SELECT 'schema contract passed' AS result;
