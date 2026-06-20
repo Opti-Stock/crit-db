@@ -16,7 +16,12 @@ services:
     volumes:
       - crit-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crit_db}"]
+      test:
+        - CMD-SHELL
+        - >-
+          pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+          && test "$$(psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc
+          "SELECT to_regclass('public.tenants') IS NOT NULL")" = "t"
       interval: 5s
       timeout: 5s
       retries: 12
