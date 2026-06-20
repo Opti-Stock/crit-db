@@ -1,14 +1,23 @@
 services:
   crit-db:
-    build: .
+    image: postgres:18
     container_name: crit-db
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: crit_assistance
     ports:
       - "5432:5432"
     volumes:
-      - crit-db-data:/var/lib/postgresql/data
+      - crit_db_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+      - ./seeds:/seeds
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d crit_assistance"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  crit-db-data:
+  crit_db_data:
