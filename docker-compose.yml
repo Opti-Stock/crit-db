@@ -5,14 +5,14 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123 # Cambia esto por una contraseña segura
+      POSTGRES_PASSWORD: password123
       POSTGRES_DB: crit_assistance
     ports:
       - "5432:5432"
     volumes:
       - crit_db_data:/var/lib/postgresql/data
-      # Montamos la carpeta entera. Postgres ejecutará todo lo que esté aquí dentro.
       - ./migrations:/docker-entrypoint-initdb.d
+      - ./seeds:/seeds
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d crit_assistance"]
       interval: 10s
