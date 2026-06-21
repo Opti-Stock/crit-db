@@ -57,6 +57,10 @@ Docker crea dos identidades de base de datos:
 
 Ver [`docs/crit-api-handoff.md`](docs/crit-api-handoff.md) para el contrato de integración completo.
 
+Para preparar un nuevo centro y entregarlo al bootstrap administrativo de la
+API, seguir [`docs/tenant-onboarding.md`](docs/tenant-onboarding.md). El primer
+usuario administrador siempre lo crea `crit-api`, no `crit-db`.
+
 ## Validación
 
 ```powershell
