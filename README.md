@@ -5,7 +5,7 @@ Fuente de verdad del esquema PostgreSQL de CRIT Assist. Contiene la baseline SQL
 ## Requisitos
 
 - Docker Desktop con Docker Compose.
-- PowerShell para el script de verificación local.
+- PowerShell o Git Bash para el script de verificacion local.
 
 La baseline usa PostgreSQL 16 y la base de desarrollo se llama `crit_db`.
 
@@ -15,6 +15,14 @@ La baseline usa PostgreSQL 16 y la base de desarrollo se llama `crit_db`.
 Copy-Item .env.example .env
 docker compose up --build --wait
 .\scripts\verify-db.ps1
+```
+
+En Git Bash/MINGW64 usa la version Bash del script:
+
+```bash
+cp .env.example .env
+docker compose up --build --wait
+bash ./scripts/verify-db.sh
 ```
 
 La configuración incluida es solo para desarrollo. No se deben reutilizar esas contraseñas en ambientes compartidos.
@@ -65,6 +73,12 @@ usuario administrador siempre lo crea `crit-api`, no `crit-db`.
 
 ```powershell
 .\scripts\verify-db.ps1
+```
+
+En Git Bash:
+
+```bash
+bash ./scripts/verify-db.sh
 ```
 
 La misma suite se ejecuta en GitHub Actions y comprueba estructura, seeds, constraints, RLS, acceso clínico, auditoría y referencias entre tenants.
