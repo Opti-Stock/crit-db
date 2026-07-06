@@ -10,7 +10,7 @@ BEGIN
         'tenants', 'users', 'roles', 'user_roles', 'user_clinic_access',
         'patients', 'collaborators', 'clinics', 'rooms', 'collaborator_clinics',
         'appointment_types', 'collaborator_availability', 'appointments',
-        'attendance_records', 'medical_notes', 'handoff_notes',
+        'appointment_check_ins', 'attendance_records', 'medical_notes', 'handoff_notes',
         'handoff_note_recipients', 'notifications', 'patient_contact_methods',
         'external_notifications', 'crit_api_outbox', 'audit_logs',
         'platform_super_admins', 'platform_audit_logs'
@@ -24,7 +24,7 @@ BEGIN
         'users', 'roles', 'user_roles', 'user_clinic_access', 'patients',
         'collaborators', 'clinics', 'rooms', 'collaborator_clinics',
         'appointment_types', 'collaborator_availability', 'appointments',
-        'attendance_records', 'medical_notes', 'handoff_notes',
+        'appointment_check_ins', 'attendance_records', 'medical_notes', 'handoff_notes',
         'handoff_note_recipients', 'notifications', 'patient_contact_methods',
         'external_notifications', 'crit_api_outbox', 'audit_logs'
     ] LOOP
@@ -105,7 +105,7 @@ BEGIN
         WHERE relnamespace = 'public'::regnamespace
           AND relname = ANY (ARRAY[
               'users', 'roles', 'patients', 'collaborators', 'appointments',
-              'attendance_records', 'medical_notes', 'crit_api_outbox', 'audit_logs'
+              'appointment_check_ins', 'attendance_records', 'medical_notes', 'crit_api_outbox', 'audit_logs'
           ])
           AND NOT relrowsecurity
     ) THEN
@@ -138,6 +138,15 @@ BEGIN
           AND indexname = 'uq_platform_super_admins_single_active'
     ) THEN
         RAISE EXCEPTION 'A single active platform super admin constraint is required';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'appointment_check_ins'::regclass
+          AND contype = 'u'
+          AND pg_get_constraintdef(oid) = 'UNIQUE (tenant_id, appointment_id)'
+    ) THEN
+        RAISE EXCEPTION 'appointment_check_ins must be unique per appointment';
     END IF;
 END;
 $$;
