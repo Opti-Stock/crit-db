@@ -69,6 +69,17 @@ VALUES (
     TRUE
 );
 
+INSERT INTO appointment_check_ins (
+    id, tenant_id, appointment_id, patient_id, checked_in_by_user_id
+)
+VALUES (
+    '91000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '80000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001'
+);
+
 SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000002', true);
 SET ROLE crit_app;
 
@@ -189,11 +200,43 @@ BEGIN
 
     BEGIN
         UPDATE appointments
-        SET status = 'invalid-status'
+        SET status = 'confirmed'
         WHERE id = '80000000-0000-0000-0000-000000000001';
-        RAISE EXCEPTION 'Invalid appointment status unexpectedly succeeded';
+        RAISE EXCEPTION 'Legacy appointment status unexpectedly succeeded';
     EXCEPTION
         WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        UPDATE appointments
+        SET status = 'completed'
+        WHERE id = '80000000-0000-0000-0000-000000000001';
+        RAISE EXCEPTION 'Completed appointment status unexpectedly succeeded';
+    EXCEPTION
+        WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        UPDATE attendance_records
+        SET status = 'late'
+        WHERE id = '90000000-0000-0000-0000-000000000001';
+        RAISE EXCEPTION 'Late attendance status unexpectedly succeeded';
+    EXCEPTION
+        WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO appointment_check_ins (
+            tenant_id, appointment_id, patient_id, checked_in_by_user_id
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000001',
+            '80000000-0000-0000-0000-000000000001',
+            '40000000-0000-0000-0000-000000000001',
+            '20000000-0000-0000-0000-000000000001'
+        );
+        RAISE EXCEPTION 'Duplicate appointment check-in unexpectedly succeeded';
+    EXCEPTION
+        WHEN unique_violation THEN NULL;
     END;
 END;
 $$;

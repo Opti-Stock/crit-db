@@ -98,6 +98,7 @@ FROM (
         ('appointment_types'),
         ('collaborator_availability'),
         ('appointments'),
+        ('appointment_check_ins'),
         ('attendance_records'),
         ('notifications')
 ) AS operational_summary_tables(table_name)
