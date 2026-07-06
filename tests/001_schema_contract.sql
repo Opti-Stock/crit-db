@@ -12,7 +12,8 @@ BEGIN
         'appointment_types', 'collaborator_availability', 'appointments',
         'attendance_records', 'medical_notes', 'handoff_notes',
         'handoff_note_recipients', 'notifications', 'patient_contact_methods',
-        'external_notifications', 'crit_api_outbox', 'audit_logs'
+        'external_notifications', 'crit_api_outbox', 'audit_logs',
+        'platform_super_admins', 'platform_audit_logs'
     ] LOOP
         IF to_regclass('public.' || required_table) IS NULL THEN
             RAISE EXCEPTION 'Missing required table: %', required_table;
@@ -117,6 +118,26 @@ BEGIN
         WHERE table_schema = 'public' AND table_name = 'appointments' AND column_name = 'starts_at'
     ) <> 'timestamp with time zone' THEN
         RAISE EXCEPTION 'appointments.starts_at must use TIMESTAMPTZ';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name IN ('platform_super_admins', 'platform_audit_logs')
+          AND column_name = 'tenant_id'
+    ) THEN
+        RAISE EXCEPTION 'Platform tables must not be tenant-scoped';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_indexes
+        WHERE schemaname = 'public'
+          AND tablename = 'platform_super_admins'
+          AND indexname = 'uq_platform_super_admins_single_active'
+    ) THEN
+        RAISE EXCEPTION 'A single active platform super admin constraint is required';
     END IF;
 END;
 $$;

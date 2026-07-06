@@ -130,6 +130,14 @@ BEGIN
     EXCEPTION
         WHEN insufficient_privilege THEN NULL;
     END;
+
+    BEGIN
+        INSERT INTO platform_super_admins (full_name, email, password_hash)
+        VALUES ('Forbidden Platform Admin', 'forbidden-platform@test.local', 'unused');
+        RAISE EXCEPTION 'Application role unexpectedly wrote to platform_super_admins';
+    EXCEPTION
+        WHEN insufficient_privilege THEN NULL;
+    END;
 END;
 $$;
 
@@ -203,6 +211,57 @@ UPDATE crit_api_outbox
 SET status = 'processing', retry_count = retry_count + 1
 WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
   AND entity_id = '90000000-0000-0000-0000-000000000001';
+
+RESET ROLE;
+
+SET ROLE crit_platform_app;
+
+INSERT INTO platform_super_admins (id, full_name, email, password_hash, status)
+VALUES (
+    'b0000000-0000-0000-0000-000000000001',
+    'Platform Admin',
+    'platform@test.local',
+    'platform-password-hash',
+    'inactive'
+);
+
+INSERT INTO tenants (id, code, name, status)
+VALUES ('00000000-0000-0000-0000-000000000003', 'CRIT-PLATFORM-03', 'CRIT Platform 03', 'active');
+
+SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000003', true);
+SELECT set_config('app.current_user_id', '', true);
+
+INSERT INTO roles (tenant_id, name, description)
+VALUES ('00000000-0000-0000-0000-000000000003', 'admin', 'Tenant administrator');
+
+INSERT INTO users (id, tenant_id, full_name, email, password_hash)
+VALUES (
+    '20000000-0000-0000-0000-000000000004',
+    '00000000-0000-0000-0000-000000000003',
+    'First Tenant Admin',
+    'first-admin@test.local',
+    'hash'
+);
+
+INSERT INTO user_roles (tenant_id, user_id, role_id)
+SELECT
+    '00000000-0000-0000-0000-000000000003',
+    '20000000-0000-0000-0000-000000000004',
+    id
+FROM roles
+WHERE tenant_id = '00000000-0000-0000-0000-000000000003'
+  AND name = 'admin';
+
+DO $$
+BEGIN
+    BEGIN
+        SELECT count(*) FROM medical_notes;
+        RAISE EXCEPTION 'Platform role unexpectedly read medical_notes';
+    EXCEPTION
+        WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
 
 ROLLBACK;
 

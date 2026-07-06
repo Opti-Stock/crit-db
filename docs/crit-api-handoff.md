@@ -7,7 +7,7 @@ Este documento es el contrato de integración entre `crit-db` y `crit-api`. La A
 API en el host y PostgreSQL en Docker:
 
 ```env
-DATABASE_URL=postgresql://crit_app:crit_app@localhost:5432/crit_db
+DATABASE_URL=postgresql://crit_app:crit_app@127.0.0.1:5432/crit_db
 ```
 
 API y PostgreSQL en la misma red Docker:
@@ -27,22 +27,24 @@ SELECT to_regclass('public.tenants') AS tenants_table;
 
 ## Resolución del tenant y login
 
-El login futuro recibe:
+El login operativo recibe solo email y password:
 
 ```json
 {
-  "tenantCode": "CRIT-OCC-01",
   "email": "usuario@crit.org",
   "password": "..."
 }
 ```
 
-1. Consultar `tenants` por `code` y `status = 'active'`.
-2. Abrir una transacción con el `tenantId` resuelto.
-3. Consultar `users` por `tenant_id`, email normalizado y estado activo.
-4. Emitir JWT con `sub`/`userId`, `tenantId` y roles autorizados.
+1. Normalizar el email.
+2. Buscar usuarios activos con ese email en tenants activos.
+3. Rechazar credenciales si el email no existe o coincide con mas de un tenant.
+4. Abrir una transacción con el `tenantId` resuelto.
+5. Emitir JWT con `sub`/`userId`, `tenantId` y roles autorizados.
 
-No se puede inferir el tenant solo por email porque la unicidad es por tenant.
+El frontend no debe enviar `tenantCode` en el login. Si un email queda duplicado
+entre tenants activos, la API debe responder como credencial invalida hasta que
+operacion resuelva la ambiguedad.
 
 ## Contexto seguro con pg
 
