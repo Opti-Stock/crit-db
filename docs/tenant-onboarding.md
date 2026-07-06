@@ -35,7 +35,7 @@ usarse como `DATABASE_URL` ni para el funcionamiento normal de `crit-api`.
 | Campo | Obligatorio | Regla |
 |---|---:|---|
 | `id` | Sí | Se genera con `gen_random_uuid()` si se omite. |
-| `code` | Sí | No vacío y único globalmente. La API lo recibe como `tenantCode`. |
+| `code` | Sí | No vacío y único globalmente. Identificador operativo del centro; no se envía en el login. |
 | `name` | Sí | Nombre no vacío del centro. |
 | `state` | No | Estado de ubicación. |
 | `city` | No | Ciudad de ubicación. |
@@ -245,9 +245,13 @@ La consulta debe mostrar los ocho roles. Sin `app.current_tenant_id`, RLS no
 debe exponerlos. `crit_app` no debe intentar crear el tenant: carece
 intencionalmente de permisos de escritura sobre `tenants`.
 
-## Entregar el tenant a `crit-api`
+## Flujo legacy de bootstrap administrativo
 
-Una vez completadas ambas verificaciones, entregar únicamente el `tenantCode`
+Para el MVP end-to-end, el alta de tenants y primer administrador debe hacerse
+desde la API/interfaz de super admin. Esta sección queda solo para ambientes que
+todavía usen el comando legacy `admin:bootstrap`.
+
+Una vez completadas ambas verificaciones, entregar el `code`
 acordado —por ejemplo `CRIT-NORTE-01`— al responsable de `crit-api`. En el
 `.env` local no versionado de la API debe configurar:
 

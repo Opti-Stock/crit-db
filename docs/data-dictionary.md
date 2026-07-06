@@ -8,6 +8,14 @@ Notación: `?` indica nullable; `→` indica FK. Todo campo sin `?` es `NOT NULL
 
 `id UUID PK`; `code VARCHAR(100) UNIQUE`; `name VARCHAR(255)`; `state VARCHAR(100)?`; `city VARCHAR(100)?`; `status VARCHAR(20)` (`active|inactive`); `created_at TIMESTAMPTZ`; `updated_at TIMESTAMPTZ`; `deleted_at TIMESTAMPTZ?`.
 
+### `platform_super_admins`
+
+Identidad global separada de los usuarios por tenant. `id UUID PK`; `full_name VARCHAR(255)`; `email VARCHAR(255)` (minusculas, unico entre activos); `password_hash VARCHAR(255)`; `status VARCHAR(20)` (`active|inactive`); `last_login_at TIMESTAMPTZ?`; `created_at TIMESTAMPTZ`; `updated_at TIMESTAMPTZ`; `deleted_at TIMESTAMPTZ?`. Solo puede existir un super admin activo.
+
+### `platform_audit_logs`
+
+Auditoria de acciones globales. `id UUID PK`; `super_admin_id UUID? -> platform_super_admins.id`; `action VARCHAR(100)`; `entity_type VARCHAR(100)`; `entity_id UUID?`; `metadata JSONB`; `created_at TIMESTAMPTZ`. No contiene contenido clinico ni hashes.
+
 ### `users`
 
 `id UUID PK`; `tenant_id UUID → tenants.id`; `full_name VARCHAR(255)`; `email VARCHAR(255)` (minúsculas, único por tenant entre activos); `password_hash VARCHAR(255)`; `status VARCHAR(20)` (`active|inactive`); `last_login_at TIMESTAMPTZ?`; `created_at TIMESTAMPTZ`; `updated_at TIMESTAMPTZ`; `deleted_at TIMESTAMPTZ?`.
