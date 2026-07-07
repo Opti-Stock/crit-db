@@ -6,7 +6,7 @@ INSERT INTO tenants (id, code, name, status)
 VALUES ('00000000-0000-0000-0000-000000000002', 'CRIT-TEST-02', 'CRIT Test 02', 'active');
 
 SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000001', true);
-SELECT set_config('app.current_user_id', '', true);
+SELECT set_config('app.current_user_id', '', false);
 
 INSERT INTO users (id, tenant_id, full_name, email, password_hash)
 VALUES
@@ -80,7 +80,7 @@ VALUES (
     '20000000-0000-0000-0000-000000000001'
 );
 
-SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000002', true);
+SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000002', false);
 SET ROLE crit_app;
 
 INSERT INTO medical_notes (
@@ -100,13 +100,17 @@ VALUES (
 
 DO $$
 BEGIN
-    IF (SELECT count(*) FROM medical_notes) <> 1 THEN
+    IF (
+        SELECT count(*)
+        FROM medical_notes
+        WHERE id = 'a0000000-0000-0000-0000-000000000001'
+    ) <> 1 THEN
         RAISE EXCEPTION 'Clinical user must be able to read its tenant medical note';
     END IF;
 END;
 $$;
 
-SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000001', true);
+SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000001', false);
 
 DO $$
 BEGIN
@@ -153,7 +157,7 @@ END;
 $$;
 
 SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000002', true);
-SELECT set_config('app.current_user_id', '', true);
+SELECT set_config('app.current_user_id', '', false);
 
 DO $$
 BEGIN
@@ -272,7 +276,7 @@ INSERT INTO tenants (id, code, name, status)
 VALUES ('00000000-0000-0000-0000-000000000003', 'CRIT-PLATFORM-03', 'CRIT Platform 03', 'active');
 
 SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000003', true);
-SELECT set_config('app.current_user_id', '', true);
+SELECT set_config('app.current_user_id', '', false);
 
 INSERT INTO roles (tenant_id, name, description)
 VALUES ('00000000-0000-0000-0000-000000000003', 'admin', 'Tenant administrator');

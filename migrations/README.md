@@ -13,7 +13,10 @@ Baseline SQL de PostgreSQL 16. Cada archivo usa una transaccion y debe aplicarse
 9. `008_create_integrations_tables.sql`: outbox de la API CRIT.
 10. `009_create_audit_logs.sql`: auditoria y triggers sanitizados.
 11. `010_create_platform_tables.sql`: super admin global y auditoria de plataforma.
+12. `011_create_appointment_check_ins.sql`: check-in separado del estado clinico.
+13. `012_add_notification_metadata.sql`: metadata de navegacion para notificaciones.
+14. `013_update_medical_notes_read_rls.sql`: lectura de notas medicas para roles de supervision y escritura solo clinica.
 
-No se deben intercalar seeds en esta carpeta. Docker aplica los seeds despues de completar las once migraciones.
+No se deben intercalar seeds en esta carpeta. Docker aplica los seeds despues de completar las migraciones.
 
 Estas migraciones representan una baseline previa al primer despliegue compartido y no son reentrantes. Para desarrollo, recrear el volumen; nunca borrar un volumen con datos sin respaldo y autorizacion explicita.
