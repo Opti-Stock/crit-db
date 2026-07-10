@@ -16,6 +16,7 @@ Baseline SQL de PostgreSQL 16. Cada archivo usa una transaccion y debe aplicarse
 12. `011_create_appointment_check_ins.sql`: check-in separado del estado clinico.
 13. `012_add_notification_metadata.sql`: metadata de navegacion para notificaciones.
 14. `013_update_medical_notes_read_rls.sql`: lectura de notas medicas para roles de supervision y escritura solo clinica.
+15. `014_add_recepcion_general_role.sql`: rol de recepcion principal para check-in global.
 
 No se deben intercalar seeds en esta carpeta. Docker aplica los seeds despues de completar las migraciones.
 
