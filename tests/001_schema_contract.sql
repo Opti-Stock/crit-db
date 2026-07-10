@@ -95,8 +95,8 @@ BEGIN
         RAISE EXCEPTION 'CRIT Occidente seed is missing';
     END IF;
 
-    IF (SELECT count(*) FROM roles WHERE tenant_id = '00000000-0000-0000-0000-000000000001') <> 8 THEN
-        RAISE EXCEPTION 'Expected exactly eight initial roles';
+    IF (SELECT count(*) FROM roles WHERE tenant_id = '00000000-0000-0000-0000-000000000001') <> 9 THEN
+        RAISE EXCEPTION 'Expected exactly nine initial roles';
     END IF;
 
     IF EXISTS (
