@@ -10,7 +10,7 @@ parametrizable ejecutado por un operador autorizado.
 `crit-db` crea únicamente:
 
 - Un registro activo en `tenants` con `code` único.
-- Los ocho roles iniciales asociados a su `tenant_id`.
+- Los roles iniciales asociados a su `tenant_id`.
 
 `crit-api` crea después el primer usuario, calcula su hash y lo asigna al rol
 `admin` dentro de una transacción. No se crean usuarios, contraseñas ni hashes
@@ -159,7 +159,7 @@ debe desactivar RLS ni usar valores persistentes sobre conexiones del pool.
 
 ## Verificar con la conexión operativa
 
-La consulta debe devolver un tenant activo y exactamente ocho roles activos:
+La consulta debe devolver un tenant activo y todos los roles activos:
 
 ```sql
 WITH expected_roles(name) AS (
@@ -167,6 +167,7 @@ WITH expected_roles(name) AS (
         ('admin'),
         ('direccion'),
         ('recepcion'),
+        ('recepcion_general'),
         ('coordinador'),
         ('medico'),
         ('terapeuta'),
@@ -196,7 +197,7 @@ GROUP BY target.id, target.code, target.name, target.status, target.deleted_at;
 ```
 
 Resultado esperado: `status = active`, `deleted_at = NULL`,
-`active_role_count = 8` y `missing_roles = NULL`.
+`active_role_count = 9` y `missing_roles = NULL`.
 
 ## Verificar como `crit_app` y bajo RLS
 
@@ -241,7 +242,7 @@ ORDER BY name;
 ROLLBACK;
 ```
 
-La consulta debe mostrar los ocho roles. Sin `app.current_tenant_id`, RLS no
+La consulta debe mostrar los roles canonicos. Sin `app.current_tenant_id`, RLS no
 debe exponerlos. `crit_app` no debe intentar crear el tenant: carece
 intencionalmente de permisos de escritura sobre `tenants`.
 

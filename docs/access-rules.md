@@ -3,7 +3,7 @@
 ## Defensa en profundidad
 
 1. `crit-api` autentica y autoriza por rol.
-2. Cada query incluye `tenant_id` explícitamente.
+2. Cada query incluye `tenant_id` explicitamente.
 3. PostgreSQL aplica RLS usando `app.current_tenant_id`.
 4. Las FKs compuestas impiden relaciones cruzadas entre tenants.
 
@@ -11,15 +11,16 @@ El rol PostgreSQL `crit_app` no es propietario, no puede crear objetos y no pued
 
 ## Matriz funcional inicial
 
-| Rol | Acceso principal | Restricción destacada |
+| Rol | Acceso principal | Restriccion destacada |
 |---|---|---|
-| `admin` | Usuarios, roles y configuración | No recibe acceso clínico por ser admin |
-| `direccion` | Supervisión administrativa | No recibe contenido clínico automáticamente |
-| `recepcion` | Citas y estado de asistencia por clínica | No puede consultar `medical_notes` |
-| `coordinador` | Agenda y operación de sus clínicas | Sin contenido clínico por defecto |
-| `medico` | Citas propias, asistencia y notas médicas | Limitado al tenant autenticado |
-| `terapeuta` | Citas propias, asistencia y notas médicas | Limitado al tenant autenticado |
-| `personal_acompanamiento` | Notas de enlace autorizadas | Sin notas médicas |
+| `admin` | Usuarios, roles y configuracion | No recibe acceso clinico por ser admin |
+| `direccion` | Supervision administrativa | No recibe contenido clinico automaticamente |
+| `recepcion` | Citas y estado de asistencia por clinica | No puede consultar `medical_notes` |
+| `recepcion_general` | Check-in global de la recepcion principal | Sin acceso a modulos clinicos ni agenda operativa |
+| `coordinador` | Agenda y operacion de sus clinicas | Sin contenido clinico por defecto |
+| `medico` | Citas propias, asistencia y notas medicas | Limitado al tenant autenticado |
+| `terapeuta` | Citas propias, asistencia y notas medicas | Limitado al tenant autenticado |
+| `personal_acompanamiento` | Notas de enlace autorizadas | Sin notas medicas |
 | `paciente_familia` | Reservado para futuro | No se asigna en el MVP |
 
-La política RLS de `medical_notes` exige `app.current_user_id` y una asignación activa a `medico` o `terapeuta`. Las demás reglas de propiedad —por ejemplo, “solo mis citas”— se implementan además en los repositorios de la API.
+La politica RLS de `medical_notes` exige `app.current_user_id` y una asignacion activa a `medico` o `terapeuta`. Las demas reglas de propiedad, por ejemplo "solo mis citas", se implementan ademas en los repositorios de la API.
