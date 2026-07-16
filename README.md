@@ -12,7 +12,7 @@ La baseline usa PostgreSQL 16 y la base de desarrollo se llama `crit_db`.
 ## Inicio rápido
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item .env.local.example .env
 docker compose up --build --wait
 .\scripts\verify-db.ps1
 ```
@@ -20,7 +20,7 @@ docker compose up --build --wait
 En Git Bash/MINGW64 usa la version Bash del script:
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env
 docker compose up --build --wait
 bash ./scripts/verify-db.sh
 ```
@@ -50,9 +50,9 @@ El diagrama canónico está en [`schema/erd.mmd`](schema/erd.mmd) y el detalle d
 
 ## Migraciones y seeds
 
-Las migraciones se ejecutan una sola vez y en orden `000`–`009`. Los seeds son idempotentes; por su dependencia, el inicializador aplica primero el tenant CRIT Occidente y después los roles.
+Las migraciones se ejecutan en orden y se registran con checksum mediante `scripts/migrate.sh`. Los seeds son idempotentes y están prohibidos en producción.
 
-La baseline no es un mecanismo de migración continua sobre bases existentes. Antes del primer ambiente compartido debe definirse un runner con registro de versiones; hasta entonces, los cambios de esta baseline requieren una base limpia.
+Las bases anteriores al runner se adoptan una sola vez siguiendo `docs/migrations-and-recovery.md`.
 
 ## Seguridad
 

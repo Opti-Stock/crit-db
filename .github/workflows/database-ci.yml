@@ -30,6 +30,13 @@ jobs:
           docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/seeds/001_seed_roles.sql
           docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db -f /opt/crit-db/tests/001_schema_contract.sql
 
+      - name: Verify backup can be restored
+        run: |
+          docker compose exec -T crit-db pg_dump -U postgres -d crit_db --format=custom --file=/tmp/crit-db.dump
+          docker compose exec -T crit-db createdb -U postgres crit_db_restore
+          docker compose exec -T crit-db pg_restore -U postgres -d crit_db_restore --no-owner --no-acl /tmp/crit-db.dump
+          docker compose exec -T crit-db psql -v ON_ERROR_STOP=1 -U postgres -d crit_db_restore -f /opt/crit-db/tests/001_schema_contract.sql
+
       - name: Show database logs on failure
         if: failure()
         run: docker compose logs crit-db

@@ -109,4 +109,4 @@ Los triggers registran acción, tabla, entidad, actor y nombres de campos modifi
 
 ## Versionado
 
-La baseline esperada termina en `009_create_audit_logs.sql`. Mientras no exista un runner versionado para ambientes compartidos, desarrollo debe iniciar con un volumen vacío después de cambios estructurales. `crit-api` debe fallar su readiness si `public.tenants` no existe.
+El esquema se actualiza con `scripts/migrate.sh`, que registra versión y checksum. Las bases anteriores se adoptan una sola vez según `docs/migrations-and-recovery.md`. `crit-api` debe fallar su readiness si PostgreSQL no está disponible.
