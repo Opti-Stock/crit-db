@@ -34,10 +34,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'platform_db_user')
 \gexec
 SQL
 
-for migration in /opt/crit-db/migrations/*.sql; do
-  echo "Applying ${migration}"
-  "${psql[@]}" --file "$migration"
-done
+PGUSER="$POSTGRES_USER" PGDATABASE="$POSTGRES_DB" /opt/crit-db/scripts/migrate.sh
 
 # Roles are tenant-scoped, so the tenant seed must run first even though its
 # filename follows the repository naming convention requested by the project.
@@ -59,7 +56,7 @@ SELECT format(
 )
 FROM pg_tables
 WHERE schemaname = 'public'
-  AND tablename NOT IN ('tenants', 'audit_logs', 'platform_super_admins', 'platform_audit_logs')
+  AND tablename NOT IN ('tenants', 'audit_logs', 'platform_super_admins', 'platform_audit_logs', 'schema_migrations')
 \gexec
 
 SELECT format('GRANT EXECUTE ON FUNCTION public.current_app_tenant_id() TO %I', :'app_db_user')
