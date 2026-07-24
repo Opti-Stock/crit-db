@@ -172,8 +172,8 @@ $$;
 
 SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000005', false);
 SELECT record_admin_audit(
-    'clinics',
-    '50000000-0000-0000-0000-000000000001',
+    'users',
+    '20000000-0000-0000-0000-000000000001',
     'restore',
     'contract admin reason'
 );
@@ -185,8 +185,8 @@ BEGIN
         FROM audit_logs
         WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
           AND user_id = '20000000-0000-0000-0000-000000000005'
-          AND entity_type = 'clinics'
-          AND entity_id = '50000000-0000-0000-0000-000000000001'
+          AND entity_type = 'users'
+          AND entity_id = '20000000-0000-0000-0000-000000000001'
           AND metadata @> '{"operation":"restore","reason":"contract admin reason"}'
     ) THEN
         RAISE EXCEPTION 'Admin audit function did not preserve safe metadata';
