@@ -13,7 +13,13 @@ BEGIN
         'appointment_check_ins', 'attendance_records', 'medical_notes', 'handoff_notes',
         'handoff_note_recipients', 'notifications', 'patient_contact_methods',
         'external_notifications', 'crit_api_outbox', 'audit_logs',
-        'platform_super_admins', 'platform_audit_logs'
+        'platform_super_admins', 'platform_audit_logs',
+        'clinic_operating_hours', 'collaborator_appointment_types',
+        'clinic_appointment_types', 'room_appointment_types', 'scheduling_blocks',
+        'patient_scheduling_preferences', 'note_embedding_chunks', 'ai_jobs',
+        'ai_worker_heartbeats',
+        'note_summaries', 'note_summary_sources', 'ai_interactions',
+        'ai_interaction_sources'
     ] LOOP
         IF to_regclass('public.' || required_table) IS NULL THEN
             RAISE EXCEPTION 'Missing required table: %', required_table;
@@ -26,7 +32,13 @@ BEGIN
         'appointment_types', 'collaborator_availability', 'appointments',
         'appointment_check_ins', 'attendance_records', 'medical_notes', 'handoff_notes',
         'handoff_note_recipients', 'notifications', 'patient_contact_methods',
-        'external_notifications', 'crit_api_outbox', 'audit_logs'
+        'external_notifications', 'crit_api_outbox', 'audit_logs',
+        'clinic_operating_hours', 'collaborator_appointment_types',
+        'clinic_appointment_types', 'room_appointment_types', 'scheduling_blocks',
+        'patient_scheduling_preferences', 'note_embedding_chunks', 'ai_jobs',
+        'ai_worker_heartbeats',
+        'note_summaries', 'note_summary_sources', 'ai_interactions',
+        'ai_interaction_sources'
     ] LOOP
         SELECT is_nullable
         INTO nullable_value
@@ -118,6 +130,36 @@ BEGIN
         WHERE table_schema = 'public' AND table_name = 'appointments' AND column_name = 'starts_at'
     ) <> 'timestamp with time zone' THEN
         RAISE EXCEPTION 'appointments.starts_at must use TIMESTAMPTZ';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'vector'
+    ) THEN
+        RAISE EXCEPTION 'pgvector extension must be enabled';
+    END IF;
+
+    IF (
+        SELECT udt_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'note_embedding_chunks'
+          AND column_name = 'embedding'
+    ) <> 'vector' THEN
+        RAISE EXCEPTION 'note_embedding_chunks.embedding must use vector';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM pg_class
+        WHERE relnamespace = 'public'::regnamespace
+          AND relname = ANY (ARRAY[
+              'clinic_operating_hours', 'scheduling_blocks',
+              'patient_scheduling_preferences', 'note_embedding_chunks',
+              'note_summaries', 'ai_interactions', 'ai_worker_heartbeats'
+          ])
+          AND NOT relrowsecurity
+    ) THEN
+        RAISE EXCEPTION 'Scheduling and AI tables must have RLS enabled';
     END IF;
 
     IF EXISTS (

@@ -24,3 +24,14 @@ El rol PostgreSQL `crit_app` no es propietario, no puede crear objetos y no pued
 | `paciente_familia` | Reservado para futuro | No se asigna en el MVP |
 
 La politica RLS de `medical_notes` exige `app.current_user_id` y una asignacion activa a `medico` o `terapeuta`. Las demas reglas de propiedad, por ejemplo "solo mis citas", se implementan ademas en los repositorios de la API.
+
+## Agenda e IA
+
+- La configuracion de horarios, compatibilidades, bloqueos y preferencias queda
+  aislada por tenant mediante RLS y FKs compuestas.
+- Los chunks, resumenes e interacciones heredan el tipo de historial de su
+  fuente. Los derivados medicos nunca estan disponibles para recepcion.
+- Cada interaccion de IA solo puede ser consultada por el usuario que la creo,
+  ademas de las comprobaciones de tenant, paciente y tipo en la API.
+- El worker usa un rol de aplicacion con contexto de tenant; no opera con el
+  propietario ni con el rol de migraciones.

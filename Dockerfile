@@ -1,4 +1,4 @@
-FROM postgres:16-alpine
+FROM pgvector/pgvector:pg16
 
 COPY migrations /opt/crit-db/migrations
 COPY seeds /opt/crit-db/seeds

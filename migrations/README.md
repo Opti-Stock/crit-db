@@ -17,7 +17,12 @@ Baseline SQL de PostgreSQL 16. Cada archivo usa una transaccion y debe aplicarse
 13. `012_add_notification_metadata.sql`: metadata de navegacion para notificaciones.
 14. `013_update_medical_notes_read_rls.sql`: lectura de notas medicas para roles de supervision y escritura solo clinica.
 15. `014_add_recepcion_general_role.sql`: rol de recepcion principal para check-in global.
+16. `015_add_intelligent_scheduling.sql`: horarios, compatibilidades, bloqueos y preferencias.
+17. `016_add_ai_assistance.sql`: pgvector, trabajos, resumenes, interacciones y fuentes.
 
 No se deben intercalar seeds en esta carpeta. Docker aplica los seeds despues de completar las migraciones.
+
+La migracion `016` requiere una imagen PostgreSQL con la extension `vector`, como
+`pgvector/pgvector:pg16`.
 
 Estas migraciones representan una baseline previa al primer despliegue compartido y no son reentrantes. Para desarrollo, recrear el volumen; nunca borrar un volumen con datos sin respaldo y autorizacion explicita.
