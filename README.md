@@ -52,7 +52,17 @@ El diagrama canónico está en [`schema/erd.mmd`](schema/erd.mmd) y el detalle d
 
 Las migraciones se ejecutan en orden y se registran con checksum mediante `scripts/migrate.sh`. Los seeds son idempotentes y están prohibidos en producción.
 
+`scripts/verify-db.ps1` y `scripts/verify-db.sh` aplican primero todas las
+migraciones pendientes y renuevan los permisos de los roles, por lo que son
+seguros para un volumen local existente. No es necesario borrar el volumen para
+actualizar el esquema.
+
 Las bases anteriores al runner se adoptan una sola vez siguiendo `docs/migrations-and-recovery.md`.
+
+La adopción exige `ADOPT_THROUGH_VERSION` para no registrar como aplicadas
+migraciones que todavía no existen en una base legacy. Verifica primero la
+última versión real del esquema; por ejemplo, una base confirmada en 014 se
+adopta hasta `014` y después ejecuta normalmente las migraciones posteriores.
 
 ## Seguridad
 
