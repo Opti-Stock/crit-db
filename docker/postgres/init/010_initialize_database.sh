@@ -62,6 +62,11 @@ WHERE schemaname = 'public'
 SELECT format('GRANT EXECUTE ON FUNCTION public.current_app_tenant_id() TO %I', :'app_db_user')
 UNION ALL
 SELECT format('GRANT EXECUTE ON FUNCTION public.current_app_user_id() TO %I', :'app_db_user')
+UNION ALL
+SELECT format(
+    'GRANT EXECUTE ON FUNCTION public.record_admin_audit(TEXT, UUID, TEXT, TEXT) TO %I',
+    :'app_db_user'
+)
 \gexec
 SQL
 

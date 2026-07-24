@@ -99,6 +99,11 @@ El fallo de la API institucional no revierte la operación clínica ya persistid
 
 Los triggers registran acción, tabla, entidad, actor y nombres de campos modificados. No se guardan valores previos/nuevos, `password_hash` ni contenido clínico. `crit_app` solo puede leer auditoría bajo RLS y no puede insertar, actualizar o eliminar filas directamente.
 
+Para motivos de eliminación/restauración administrativa, `crit-api` ejecuta
+`record_admin_audit(...)`. La función toma tenant y actor del contexto, exige
+rol `admin` o `direccion`, y sólo admite clínicas/consultorios y operaciones
+permitidas. Este contrato conserva la prohibición de `INSERT` directo.
+
 ## Errores esperables
 
 - Sin `app.current_tenant_id`: lecturas vacías y escrituras rechazadas por RLS.
