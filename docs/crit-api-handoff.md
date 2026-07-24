@@ -101,7 +101,7 @@ Los triggers registran acción, tabla, entidad, actor y nombres de campos modifi
 
 Para motivos de eliminación/restauración administrativa, `crit-api` ejecuta
 `record_admin_audit(...)`. La función toma tenant y actor del contexto, exige
-rol `admin` o `direccion`, y sólo admite clínicas/consultorios y operaciones
+rol `admin` o `direccion`, y sólo admite usuarios, clínicas/consultorios y operaciones
 permitidas. Este contrato conserva la prohibición de `INSERT` directo.
 
 ## Errores esperables
