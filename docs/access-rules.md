@@ -7,7 +7,7 @@
 3. PostgreSQL aplica RLS usando `app.current_tenant_id`.
 4. Las FKs compuestas impiden relaciones cruzadas entre tenants.
 
-El rol PostgreSQL `crit_app` no es propietario, no puede crear objetos y no puede escribir directamente en `tenants`, `audit_logs` ni tablas de plataforma. El rol `crit_platform_app` se usa solo para super admin global: puede provisionar tenants, roles y el primer administrador de un CRIT, pero no recibe permisos sobre `medical_notes` ni notas de enlace.
+El rol PostgreSQL `crit_app` no es propietario, no puede crear objetos y no puede escribir directamente en `tenants`, `audit_logs` ni tablas de plataforma. Puede ejecutar `record_admin_audit(...)`, que valida contexto, rol y una lista cerrada de eventos antes de registrar motivos administrativos. El rol `crit_platform_app` se usa solo para super admin global: puede provisionar tenants, roles y el primer administrador de un CRIT, pero no recibe permisos sobre `medical_notes` ni notas de enlace.
 
 ## Matriz funcional inicial
 

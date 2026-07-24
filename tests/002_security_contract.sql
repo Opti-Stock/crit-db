@@ -11,12 +11,14 @@ SELECT set_config('app.current_user_id', '', false);
 INSERT INTO users (id, tenant_id, full_name, email, password_hash)
 VALUES
     ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Usuario Recepción', 'recepcion@test.local', 'secret-password-marker'),
-    ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Usuario Médico', 'medico@test.local', 'not-a-real-password');
+    ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Usuario Médico', 'medico@test.local', 'not-a-real-password'),
+    ('20000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Usuario Admin', 'admin-contract@test.local', 'not-a-real-password');
 
 INSERT INTO user_roles (tenant_id, user_id, role_id)
 VALUES
     ('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003'),
-    ('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005');
+    ('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005'),
+    ('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001');
 
 INSERT INTO collaborators (id, tenant_id, user_id, full_name, specialty)
 VALUES ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'Profesional Médico', 'Medicina');
@@ -147,6 +149,18 @@ BEGIN
     END;
 
     BEGIN
+        PERFORM record_admin_audit(
+            'clinics',
+            '50000000-0000-0000-0000-000000000001',
+            'soft_delete',
+            'forbidden reception reason'
+        );
+        RAISE EXCEPTION 'Reception unexpectedly recorded an administrative audit event';
+    EXCEPTION
+        WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
         INSERT INTO platform_super_admins (full_name, email, password_hash)
         VALUES ('Forbidden Platform Admin', 'forbidden-platform@test.local', 'unused');
         RAISE EXCEPTION 'Application role unexpectedly wrote to platform_super_admins';
@@ -155,6 +169,32 @@ BEGIN
     END;
 END;
 $$;
+
+SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000005', false);
+SELECT record_admin_audit(
+    'clinics',
+    '50000000-0000-0000-0000-000000000001',
+    'restore',
+    'contract admin reason'
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM audit_logs
+        WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+          AND user_id = '20000000-0000-0000-0000-000000000005'
+          AND entity_type = 'clinics'
+          AND entity_id = '50000000-0000-0000-0000-000000000001'
+          AND metadata @> '{"operation":"restore","reason":"contract admin reason"}'
+    ) THEN
+        RAISE EXCEPTION 'Admin audit function did not preserve safe metadata';
+    END IF;
+END;
+$$;
+
+SELECT set_config('app.current_user_id', '20000000-0000-0000-0000-000000000001', false);
 
 SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000002', true);
 SELECT set_config('app.current_user_id', '', false);
