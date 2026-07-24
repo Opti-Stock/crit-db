@@ -46,6 +46,7 @@ CREATE TABLE ai_jobs (
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
     job_type VARCHAR(20) NOT NULL,
     resource_id UUID NOT NULL,
+    requested_by_user_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'queued',
     priority INTEGER NOT NULL DEFAULT 100,
     attempts INTEGER NOT NULL DEFAULT 0,
@@ -60,9 +61,27 @@ CREATE TABLE ai_jobs (
     CONSTRAINT uq_ai_jobs_active_resource UNIQUE NULLS NOT DISTINCT (
         tenant_id, job_type, resource_id, completed_at
     ),
+    CONSTRAINT fk_ai_jobs_requester FOREIGN KEY (tenant_id, requested_by_user_id)
+        REFERENCES users (tenant_id, id) ON DELETE RESTRICT,
     CONSTRAINT ck_ai_jobs_type CHECK (job_type IN ('index_note', 'summarize', 'answer')),
     CONSTRAINT ck_ai_jobs_status CHECK (status IN ('queued', 'running', 'completed', 'failed')),
     CONSTRAINT ck_ai_jobs_attempts CHECK (attempts BETWEEN 0 AND 2)
+);
+
+CREATE TABLE ai_worker_heartbeats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    worker_id VARCHAR(150) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'healthy',
+    embedding_model VARCHAR(150) NOT NULL,
+    generation_model VARCHAR(150) NOT NULL,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_ai_worker_heartbeats_tenant_id_id UNIQUE (tenant_id, id),
+    CONSTRAINT uq_ai_worker_heartbeats_worker UNIQUE (tenant_id, worker_id),
+    CONSTRAINT ck_ai_worker_heartbeats_status CHECK (
+        status IN ('healthy', 'degraded', 'stopping')
+    )
 );
 
 CREATE TABLE note_summaries (
@@ -185,6 +204,8 @@ CREATE INDEX idx_note_embedding_chunks_lookup
 CREATE INDEX idx_ai_jobs_claim
     ON ai_jobs (status, priority, available_at, created_at)
     WHERE status = 'queued';
+CREATE INDEX idx_ai_worker_heartbeats_seen
+    ON ai_worker_heartbeats (tenant_id, last_seen_at DESC);
 CREATE INDEX idx_note_summaries_latest
     ON note_summaries (tenant_id, patient_id, note_kind, created_at DESC);
 CREATE INDEX idx_ai_interactions_history
@@ -194,6 +215,7 @@ CREATE INDEX idx_ai_interactions_expiration
 
 ALTER TABLE note_embedding_chunks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_worker_heartbeats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE note_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE note_summary_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
@@ -248,6 +270,9 @@ CREATE POLICY write_note_embedding_chunks ON note_embedding_chunks
         )
     );
 CREATE POLICY tenant_isolation_ai_jobs ON ai_jobs
+    FOR ALL USING (tenant_id = current_app_tenant_id())
+    WITH CHECK (tenant_id = current_app_tenant_id());
+CREATE POLICY tenant_isolation_ai_worker_heartbeats ON ai_worker_heartbeats
     FOR ALL USING (tenant_id = current_app_tenant_id())
     WITH CHECK (tenant_id = current_app_tenant_id());
 CREATE POLICY access_note_summaries ON note_summaries
@@ -391,8 +416,12 @@ BEGIN
           AND resource_id = source_id
           AND status IN ('queued', 'running')
     ) THEN
-        INSERT INTO ai_jobs (tenant_id, job_type, resource_id, status, priority)
-        VALUES (source_tenant_id, 'index_note', source_id, 'queued', 10);
+        INSERT INTO ai_jobs (
+            tenant_id, job_type, resource_id, requested_by_user_id, status, priority
+        )
+        VALUES (
+            source_tenant_id, 'index_note', source_id, current_app_user_id(), 'queued', 10
+        );
     END IF;
 
     UPDATE note_summaries

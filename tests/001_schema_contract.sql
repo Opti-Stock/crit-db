@@ -17,6 +17,7 @@ BEGIN
         'clinic_operating_hours', 'collaborator_appointment_types',
         'clinic_appointment_types', 'room_appointment_types', 'scheduling_blocks',
         'patient_scheduling_preferences', 'note_embedding_chunks', 'ai_jobs',
+        'ai_worker_heartbeats',
         'note_summaries', 'note_summary_sources', 'ai_interactions',
         'ai_interaction_sources'
     ] LOOP
@@ -35,6 +36,7 @@ BEGIN
         'clinic_operating_hours', 'collaborator_appointment_types',
         'clinic_appointment_types', 'room_appointment_types', 'scheduling_blocks',
         'patient_scheduling_preferences', 'note_embedding_chunks', 'ai_jobs',
+        'ai_worker_heartbeats',
         'note_summaries', 'note_summary_sources', 'ai_interactions',
         'ai_interaction_sources'
     ] LOOP
@@ -153,7 +155,7 @@ BEGIN
           AND relname = ANY (ARRAY[
               'clinic_operating_hours', 'scheduling_blocks',
               'patient_scheduling_preferences', 'note_embedding_chunks',
-              'note_summaries', 'ai_interactions'
+              'note_summaries', 'ai_interactions', 'ai_worker_heartbeats'
           ])
           AND NOT relrowsecurity
     ) THEN

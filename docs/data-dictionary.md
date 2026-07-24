@@ -138,6 +138,9 @@ Fragmentos derivados de una nota médica o de enlace. Guarda paciente, tipo,
 
 Cola persistente para `index_note`, `summarize` y `answer`. Guarda prioridad,
 estado, intentos, bloqueo, error seguro y timestamps; nunca prompts.
+`requested_by_user_id` conserva el usuario cuyo acceso debe revalidarse durante
+el procesamiento. `ai_worker_heartbeats` registra salud y modelos por tenant sin
+guardar prompts ni contenido clínico.
 
 ### `note_summaries` y `note_summary_sources`
 

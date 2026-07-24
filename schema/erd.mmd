@@ -28,6 +28,7 @@
   TENANTS ||--o{ AUDIT_LOGS : scopes
   TENANTS ||--o{ NOTE_EMBEDDING_CHUNKS : scopes
   TENANTS ||--o{ AI_JOBS : scopes
+  TENANTS ||--o{ AI_WORKER_HEARTBEATS : scopes
   TENANTS ||--o{ NOTE_SUMMARIES : scopes
   TENANTS ||--o{ NOTE_SUMMARY_SOURCES : scopes
   TENANTS ||--o{ AI_INTERACTIONS : scopes
@@ -37,6 +38,7 @@
   ROLES ||--o{ USER_ROLES : assigned_to
 
   USERS ||--o{ USER_CLINIC_ACCESS : has
+  USERS ||--o{ AI_JOBS : requests
   CLINICS ||--o{ USER_CLINIC_ACCESS : grants
 
   USERS ||--o| COLLABORATORS : authenticates_staff_profile
@@ -457,8 +459,19 @@
     uuid tenant_id FK
     varchar job_type
     uuid resource_id
+    uuid requested_by_user_id FK
     varchar status
     integer attempts
+  }
+
+  AI_WORKER_HEARTBEATS {
+    uuid id PK
+    uuid tenant_id FK
+    varchar worker_id
+    varchar status
+    varchar embedding_model
+    varchar generation_model
+    timestamptz last_seen_at
   }
 
   NOTE_SUMMARIES {
