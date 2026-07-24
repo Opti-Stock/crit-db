@@ -2,6 +2,12 @@
 
 Todas las relaciones tenant-scoped incluyen `tenant_id` en ambos lados de la FK. Esto impide que una fila del tenant A apunte a una entidad del tenant B, incluso para el propietario de la base.
 
+La agenda inteligente cruza horarios de clínica, disponibilidad del
+colaborador, compatibilidad de tipo, sala, bloqueos y preferencias.
+`note_embedding_chunks` deriva de exactamente una nota médica o de enlace.
+`note_summaries` y `ai_interactions` pertenecen a un paciente y conservan
+fuentes verificables; sus políticas nunca amplían el acceso de la nota fuente.
+
 - Un tenant tiene usuarios, roles, pacientes, colaboradores, clínicas y toda la operación asociada.
 - Un usuario puede tener varios roles y accesos a varias clínicas.
 - Un colaborador pertenece obligatoriamente a un usuario; un paciente puede vincularse opcionalmente a uno.

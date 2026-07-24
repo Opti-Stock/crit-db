@@ -15,3 +15,11 @@ Para una base creada antes del runner, validar primero los contratos SQL y ejecu
 Antes de migrar, definir `BACKUP_FILE` y ejecutar `scripts/backup.sh`. El script crea un dump custom y valida su catálogo. Para comprobar una restauración, usar una base temporal vacía mediante `RESTORE_DATABASE_URL` y ejecutar `scripts/restore-verify.sh`; nunca probar una restauración sobre la base activa.
 
 Si una migración falla, detener la publicación de APIs, restaurar en una base nueva y verificar ambos contratos SQL antes de cambiar conexiones.
+
+## Extensión vectorial
+
+La migración `016_add_ai_assistance.sql` instala `vector`. La imagen local y el
+servicio administrado deben ofrecer la extensión antes de ejecutar migraciones.
+Tras una restauración, validar la extensión y las relaciones de fuentes antes de
+reanudar el worker. Los detalles operativos están en
+[`intelligent-scheduling-and-ai.md`](intelligent-scheduling-and-ai.md).

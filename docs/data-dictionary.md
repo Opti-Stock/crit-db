@@ -104,6 +104,53 @@ Auditoria de acciones globales. `id UUID PK`; `super_admin_id UUID? -> platform_
 
 `id UUID PK`; `tenant_id UUID → tenants.id`; `entity_type VARCHAR(100)`; `entity_id UUID`; `payload JSONB` (objeto); `status VARCHAR(20)` (`pending|processing|sent|failed`); `retry_count INTEGER` (>=0); `last_error TEXT?`; `sent_at TIMESTAMPTZ?`; `created_at TIMESTAMPTZ`; `updated_at TIMESTAMPTZ`.
 
+## Agenda inteligente
+
+### `clinic_operating_hours`
+
+Franjas recurrentes por clínica y día. Incluye `tenant_id`, `clinic_id`,
+`weekday`, `start_time`, `end_time`, timestamps y soft delete.
+
+### Compatibilidades
+
+`collaborator_appointment_types`, `clinic_appointment_types` y
+`room_appointment_types` relacionan tipos de cita con profesionales, clínicas y
+salas. Todas las relaciones incluyen `tenant_id` y son únicas.
+
+### `scheduling_blocks`
+
+Bloqueo temporal de clínica completa, profesional o sala. Contiene rango
+`TIMESTAMPTZ`, motivo, creador, auditoría y soft delete.
+
+### `patient_scheduling_preferences`
+
+Preferencia opcional del paciente por clínica, día y franja horaria. Es una
+señal de ranking, no una restricción dura.
+
+## Notas y asistencia de IA
+
+### `note_embedding_chunks`
+
+Fragmentos derivados de una nota médica o de enlace. Guarda paciente, tipo,
+índice, extracto mínimo, hash, modelo, `vector(384)` y fecha de la fuente.
+
+### `ai_jobs`
+
+Cola persistente para `index_note`, `summarize` y `answer`. Guarda prioridad,
+estado, intentos, bloqueo, error seguro y timestamps; nunca prompts.
+
+### `note_summaries` y `note_summary_sources`
+
+Resumen persistente por paciente y tipo con contenido JSONB, hash de fuentes,
+modelo, versión de prompt, solicitante y estado. Las fuentes conservan FKs a las
+notas originales.
+
+### `ai_interactions` y `ai_interaction_sources`
+
+Historial protegido de preguntas y respuestas con modelo, feedback, expiración
+y fuentes vectoriales. Las preguntas no son parte del expediente clínico y no
+se copian a logs operativos.
+
 ### `audit_logs`
 
 `id UUID PK`; `tenant_id UUID → tenants.id`; `user_id UUID? → users.id`; `action VARCHAR(10)` (`INSERT|UPDATE|DELETE`); `entity_type VARCHAR(100)`; `entity_id UUID`; `metadata JSONB` con `changed_fields`; `created_at TIMESTAMPTZ`. No contiene valores anteriores/nuevos, hashes ni contenido clínico.

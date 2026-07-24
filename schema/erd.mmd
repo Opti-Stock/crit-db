@@ -10,6 +10,12 @@
   TENANTS ||--o{ COLLABORATOR_CLINICS : scopes
   TENANTS ||--o{ APPOINTMENT_TYPES : scopes
   TENANTS ||--o{ COLLABORATOR_AVAILABILITY : scopes
+  TENANTS ||--o{ CLINIC_OPERATING_HOURS : scopes
+  TENANTS ||--o{ COLLABORATOR_APPOINTMENT_TYPES : scopes
+  TENANTS ||--o{ CLINIC_APPOINTMENT_TYPES : scopes
+  TENANTS ||--o{ ROOM_APPOINTMENT_TYPES : scopes
+  TENANTS ||--o{ SCHEDULING_BLOCKS : scopes
+  TENANTS ||--o{ PATIENT_SCHEDULING_PREFERENCES : scopes
   TENANTS ||--o{ APPOINTMENTS : scopes
   TENANTS ||--o{ ATTENDANCE_RECORDS : scopes
   TENANTS ||--o{ MEDICAL_NOTES : scopes
@@ -20,6 +26,12 @@
   TENANTS ||--o{ EXTERNAL_NOTIFICATIONS : scopes
   TENANTS ||--o{ CRIT_API_OUTBOX : scopes
   TENANTS ||--o{ AUDIT_LOGS : scopes
+  TENANTS ||--o{ NOTE_EMBEDDING_CHUNKS : scopes
+  TENANTS ||--o{ AI_JOBS : scopes
+  TENANTS ||--o{ NOTE_SUMMARIES : scopes
+  TENANTS ||--o{ NOTE_SUMMARY_SOURCES : scopes
+  TENANTS ||--o{ AI_INTERACTIONS : scopes
+  TENANTS ||--o{ AI_INTERACTION_SOURCES : scopes
 
   USERS ||--o{ USER_ROLES : has
   ROLES ||--o{ USER_ROLES : assigned_to
@@ -36,6 +48,18 @@
 
   COLLABORATORS ||--o{ COLLABORATOR_AVAILABILITY : has
   CLINICS ||--o{ COLLABORATOR_AVAILABILITY : schedules
+  CLINICS ||--o{ CLINIC_OPERATING_HOURS : opens
+  COLLABORATORS ||--o{ COLLABORATOR_APPOINTMENT_TYPES : supports
+  CLINICS ||--o{ CLINIC_APPOINTMENT_TYPES : offers
+  ROOMS ||--o{ ROOM_APPOINTMENT_TYPES : supports
+  APPOINTMENT_TYPES ||--o{ COLLABORATOR_APPOINTMENT_TYPES : maps
+  APPOINTMENT_TYPES ||--o{ CLINIC_APPOINTMENT_TYPES : maps
+  APPOINTMENT_TYPES ||--o{ ROOM_APPOINTMENT_TYPES : maps
+  CLINICS ||--o{ SCHEDULING_BLOCKS : blocks
+  COLLABORATORS ||--o{ SCHEDULING_BLOCKS : optionally_blocks
+  ROOMS ||--o{ SCHEDULING_BLOCKS : optionally_blocks
+  PATIENTS ||--o{ PATIENT_SCHEDULING_PREFERENCES : prefers
+  CLINICS ||--o{ PATIENT_SCHEDULING_PREFERENCES : applies_at
 
   APPOINTMENT_TYPES ||--o{ APPOINTMENTS : defines
   PATIENTS ||--o{ APPOINTMENTS : attends
@@ -59,6 +83,16 @@
   USERS ||--o{ HANDOFF_NOTES : creates
   HANDOFF_NOTES ||--o{ HANDOFF_NOTE_RECIPIENTS : sent_to
   USERS ||--o{ HANDOFF_NOTE_RECIPIENTS : receives
+  MEDICAL_NOTES ||--o{ NOTE_EMBEDDING_CHUNKS : indexes
+  HANDOFF_NOTES ||--o{ NOTE_EMBEDDING_CHUNKS : indexes
+  PATIENTS ||--o{ NOTE_SUMMARIES : summarizes
+  NOTE_SUMMARIES ||--o{ NOTE_SUMMARY_SOURCES : cites
+  MEDICAL_NOTES ||--o{ NOTE_SUMMARY_SOURCES : supports
+  HANDOFF_NOTES ||--o{ NOTE_SUMMARY_SOURCES : supports
+  PATIENTS ||--o{ AI_INTERACTIONS : asks_about
+  USERS ||--o{ AI_INTERACTIONS : requests
+  AI_INTERACTIONS ||--o{ AI_INTERACTION_SOURCES : cites
+  NOTE_EMBEDDING_CHUNKS ||--o{ AI_INTERACTION_SOURCES : supports
 
   USERS ||--o{ NOTIFICATIONS : receives
   USERS ||--o{ AUDIT_LOGS : acts
@@ -161,6 +195,7 @@
     integer capacity
     uuid coordinator_id FK
     varchar status
+    varchar time_zone
     timestamptz created_at
     timestamptz updated_at
     timestamptz deleted_at
@@ -351,4 +386,115 @@
     uuid entity_id
     jsonb metadata
     timestamptz created_at
+  }
+
+  CLINIC_OPERATING_HOURS {
+    uuid id PK
+    uuid tenant_id FK
+    uuid clinic_id FK
+    integer weekday
+    time start_time
+    time end_time
+    timestamptz deleted_at
+  }
+
+  COLLABORATOR_APPOINTMENT_TYPES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid collaborator_id FK
+    uuid appointment_type_id FK
+  }
+
+  CLINIC_APPOINTMENT_TYPES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid clinic_id FK
+    uuid appointment_type_id FK
+  }
+
+  ROOM_APPOINTMENT_TYPES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid clinic_id FK
+    uuid room_id FK
+    uuid appointment_type_id FK
+  }
+
+  SCHEDULING_BLOCKS {
+    uuid id PK
+    uuid tenant_id FK
+    uuid clinic_id FK
+    uuid collaborator_id FK
+    uuid room_id FK
+    timestamptz starts_at
+    timestamptz ends_at
+    varchar reason
+  }
+
+  PATIENT_SCHEDULING_PREFERENCES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid clinic_id FK
+    integer weekday
+    time start_time
+    time end_time
+  }
+
+  NOTE_EMBEDDING_CHUNKS {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid medical_note_id FK
+    uuid handoff_note_id FK
+    varchar note_kind
+    integer chunk_index
+    vector embedding
+  }
+
+  AI_JOBS {
+    uuid id PK
+    uuid tenant_id FK
+    varchar job_type
+    uuid resource_id
+    varchar status
+    integer attempts
+  }
+
+  NOTE_SUMMARIES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    varchar note_kind
+    varchar status
+    jsonb content
+    varchar source_hash
+  }
+
+  NOTE_SUMMARY_SOURCES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid summary_id FK
+    uuid medical_note_id FK
+    uuid handoff_note_id FK
+  }
+
+  AI_INTERACTIONS {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid requested_by_user_id FK
+    varchar note_kind
+    text question
+    text answer
+    varchar status
+  }
+
+  AI_INTERACTION_SOURCES {
+    uuid id PK
+    uuid tenant_id FK
+    uuid interaction_id FK
+    uuid embedding_chunk_id FK
+    integer rank
+    float score
   }

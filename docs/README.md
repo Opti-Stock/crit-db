@@ -9,5 +9,6 @@ El orden completo para levantar los tres repositorios está en la [guía canóni
 - [Integración con crit-api](crit-api-handoff.md)
 - [Onboarding de tenants](tenant-onboarding.md)
 - [Migraciones y recuperación](migrations-and-recovery.md)
+- [Agenda inteligente e IA local](intelligent-scheduling-and-ai.md)
 
 El esquema, las migraciones y las políticas RLS de este repositorio son la fuente de verdad de PostgreSQL para CRIT Assist.
